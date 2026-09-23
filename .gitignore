@@ -1,0 +1,7 @@
+node_modules/
+.next/
+out/
+.netlify/
+.pnpm-store/
+*.log
+.DS_Store
