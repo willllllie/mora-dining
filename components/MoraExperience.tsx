@@ -1,6 +1,8 @@
 "use client";
 
 import gsap from "gsap";
+import { Bodies, Composite, Engine } from "matter-js";
+import type { Body } from "matter-js";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
@@ -12,6 +14,89 @@ type MoraExperienceProps = {
 };
 
 type ShapeStyle = CSSProperties & Record<`--${string}`, string>;
+
+type PhysicsShape = {
+  body: Body;
+  element: HTMLElement;
+  home: { x: number; y: number };
+};
+
+const collisionScale: Record<SectionSlug, { x: number; y: number }> = {
+  supper: { x: 0.82, y: 0.82 },
+  "sample-menus": { x: 0.82, y: 0.76 },
+  "how-we-work": { x: 0.68, y: 0.86 },
+  about: { x: 0.72, y: 0.88 },
+  contact: { x: 0.84, y: 0.72 },
+};
+
+function useResolvedPhysics(
+  compositionRef: React.RefObject<HTMLElement | null>,
+  isMobile: boolean | null,
+  revision: number,
+) {
+  useLayoutEffect(() => {
+    const composition = compositionRef.current;
+    if (!composition || isMobile === null) return;
+
+    const elements = Array.from(composition.querySelectorAll<HTMLElement>("[data-shape]"));
+    if (!elements.length) return;
+
+    const engine = Engine.create();
+    engine.gravity.scale = 0;
+
+    const shapeBodies: PhysicsShape[] = elements.map((element) => {
+      const slug = element.dataset.sectionSlug as SectionSlug;
+      const section = getSection(slug)!;
+      const width = element.offsetWidth;
+      const height = element.offsetHeight;
+      const home = {
+        x: element.offsetLeft + width / 2,
+        y: element.offsetTop + height / 2,
+      };
+      const rotation = parseFloat(isMobile ? section.mobile.rotation : section.desktop.rotation);
+      const scale = collisionScale[slug];
+      const body = Bodies.rectangle(home.x, home.y, width * scale.x, height * scale.y, {
+        angle: (rotation * Math.PI) / 180,
+        inertia: Infinity,
+        isStatic: slug === "how-we-work",
+        isSensor: !isMobile,
+        label: slug,
+      });
+
+      return { body, element, home };
+    });
+
+    Composite.add(engine.world, shapeBodies.map(({ body }) => body));
+
+    // Resolve any collisions before the browser paints. The chair is the fixed
+    // anchor; the other pieces make only the tiny adjustments needed around it.
+    for (let frame = 0; frame < 28; frame += 1) {
+      Engine.update(engine, 1000 / 60);
+    }
+
+    for (const shape of shapeBodies) {
+      const x = shape.body.position.x - shape.home.x;
+      const y = shape.body.position.y - shape.home.y;
+      const angle = (shape.body.angle * 180) / Math.PI;
+      shape.element.style.setProperty("--physics-x", `${x.toFixed(2)}px`);
+      shape.element.style.setProperty("--physics-y", `${y.toFixed(2)}px`);
+      shape.element.style.setProperty("--physics-rotation", `${angle.toFixed(3)}deg`);
+      shape.element.style.setProperty("--physics-counter-rotation", `${(-angle).toFixed(3)}deg`);
+    }
+    composition.dataset.physics = "resolved";
+    Engine.clear(engine);
+
+    return () => {
+      delete composition.dataset.physics;
+      for (const { element } of shapeBodies) {
+        element.style.removeProperty("--physics-x");
+        element.style.removeProperty("--physics-y");
+        element.style.removeProperty("--physics-rotation");
+        element.style.removeProperty("--physics-counter-rotation");
+      }
+    };
+  }, [compositionRef, isMobile, revision]);
+}
 
 function getSlugFromPath(pathname: string): SectionSlug | null {
   const slug = pathname.split("/").filter(Boolean)[0];
@@ -95,12 +180,14 @@ export function MoraExperience({ children }: MoraExperienceProps) {
   const [hoveredSlug, setHoveredSlug] = useState<SectionSlug | null>(null);
   const [mobileActiveSlug, setMobileActiveSlug] = useState<SectionSlug>("how-we-work");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  const [physicsRevision, setPhysicsRevision] = useState(0);
   const shellRef = useRef<HTMLDivElement>(null);
+  const compositionRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const previousRouteRef = useRef<SectionSlug | null>(routeSlug);
 
-  const activeSlug = routeSlug ?? (isMobile ? mobileActiveSlug : hoveredSlug);
+  const activeSlug = routeSlug ?? (isMobile === true ? mobileActiveSlug : hoveredSlug);
   const hasActive = activeSlug !== null;
   const currentSection = useMemo(
     () => (routeSlug ? getSection(routeSlug) ?? null : null),
@@ -115,23 +202,25 @@ export function MoraExperience({ children }: MoraExperienceProps) {
     return () => query.removeEventListener("change", sync);
   }, []);
 
+  useEffect(() => {
+    let resizeTimer = 0;
+    const refreshPhysics = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => setPhysicsRevision((value) => value + 1), 180);
+    };
+    window.addEventListener("resize", refreshPhysics);
+    return () => {
+      window.clearTimeout(resizeTimer);
+      window.removeEventListener("resize", refreshPhysics);
+    };
+  }, []);
+
+  useResolvedPhysics(compositionRef, isMobile, physicsRevision);
+
   useLayoutEffect(() => {
     if (!shellRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const context = gsap.context(() => {
-      gsap.fromTo(
-        "[data-shape]",
-        { autoAlpha: 0, y: 24, scale: 0.97 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.72,
-          stagger: 0.075,
-          ease: "power3.out",
-          clearProps: "transform",
-        },
-      );
       gsap.fromTo("[data-logo]", { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.45 });
     }, shellRef);
 
@@ -139,7 +228,7 @@ export function MoraExperience({ children }: MoraExperienceProps) {
   }, []);
 
   useEffect(() => {
-    if (!isMobile || routeSlug || menuOpen) return;
+    if (isMobile !== true || routeSlug || menuOpen) return;
 
     const shapes = Array.from(document.querySelectorAll<HTMLElement>("[data-shape]"));
     let ticking = false;
@@ -259,16 +348,18 @@ export function MoraExperience({ children }: MoraExperienceProps) {
           aria-label="Explore Mora Dining"
           aria-hidden={Boolean(routeSlug)}
         >
-          {sections.map((section) => (
-            <ShapeLink
-              key={section.slug}
-              section={section}
-              active={activeSlug === section.slug}
-              muted={hasActive && activeSlug !== section.slug}
-              onActivate={() => !isMobile && !routeSlug && setHoveredSlug(section.slug)}
-              onDeactivate={() => !isMobile && !routeSlug && setHoveredSlug(null)}
-            />
-          ))}
+          <div ref={compositionRef} className="shape-composition">
+            {sections.map((section) => (
+              <ShapeLink
+                key={section.slug}
+                section={section}
+                active={activeSlug === section.slug}
+                muted={hasActive && activeSlug !== section.slug}
+                onActivate={() => isMobile === false && !routeSlug && setHoveredSlug(section.slug)}
+                onDeactivate={() => isMobile === false && !routeSlug && setHoveredSlug(null)}
+              />
+            ))}
+          </div>
         </section>
 
         {routeSlug && currentSection ? (
