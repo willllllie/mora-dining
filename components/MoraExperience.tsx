@@ -1,8 +1,11 @@
 "use client";
 
 import gsap from "gsap";
-import { Bodies, Composite, Engine } from "matter-js";
-import type { Body } from "matter-js";
+import { DialRoot, useDialKit } from "dialkit";
+import type { DialConfig } from "dialkit";
+import "dialkit/styles.css";
+import { Bodies, Body, Common, Composite, Engine } from "matter-js";
+import decomp from "poly-decomp";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
@@ -15,34 +18,176 @@ type MoraExperienceProps = {
 
 type ShapeStyle = CSSProperties & Record<`--${string}`, string>;
 
+const moraDialConfig = {
+  appearance: {
+    background: "#262423",
+    logo: "#f5f1f0",
+    jelly: "#f4cce2",
+    pitcher: "#569852",
+    chair: "#96bee3",
+    cup: "#ed9393",
+    table: "#fdce2c",
+  },
+  physics: {
+    simulationSteps: [28, 0, 180, 1],
+    gravityX: [0, -1, 1, 0.01],
+    gravityY: [0, -1, 1, 0.01],
+    gravityScale: [0, 0, 0.01, 0.0001],
+    friction: [0.1, 0, 1, 0.01],
+    frictionAir: [0.01, 0, 0.3, 0.005],
+    restitution: [0, 0, 1, 0.01],
+    resolveCollisions: true,
+    pinChair: true,
+    collisionScale: {
+      _collapsed: true,
+      global: [1.02, 0.4, 1.5, 0.01],
+      jelly: [1, 0.4, 1.5, 0.01],
+      pitcher: [1, 0.4, 1.5, 0.01],
+      chair: [1, 0.4, 1.5, 0.01],
+      cup: [1, 0.4, 1.5, 0.01],
+      table: [1, 0.4, 1.5, 0.01],
+    },
+  },
+  debug: {
+    wireframes: false,
+    bounds: false,
+  },
+} satisfies DialConfig;
+
+type PhysicsControls = {
+  simulationSteps: number;
+  gravityX: number;
+  gravityY: number;
+  gravityScale: number;
+  friction: number;
+  frictionAir: number;
+  restitution: number;
+  resolveCollisions: boolean;
+  pinChair: boolean;
+  collisionScale: {
+    global: number;
+    jelly: number;
+    pitcher: number;
+    chair: number;
+    cup: number;
+    table: number;
+  };
+};
+
+type DebugControls = {
+  wireframes: boolean;
+  bounds: boolean;
+};
+
 type PhysicsShape = {
   body: Body;
   element: HTMLElement;
-  home: { x: number; y: number };
+  startPosition: { x: number; y: number };
 };
 
-const collisionScale: Record<SectionSlug, { x: number; y: number }> = {
-  supper: { x: 0.82, y: 0.82 },
-  "sample-menus": { x: 0.82, y: 0.76 },
-  "how-we-work": { x: 0.68, y: 0.86 },
-  about: { x: 0.72, y: 0.88 },
-  contact: { x: 0.84, y: 0.72 },
-};
+type ShapeGeometry = Record<
+  SectionSlug,
+  { width: number; height: number; points: Array<{ x: number; y: number }> }
+>;
+
+Common.setDecomp(decomp);
+
+function sampleSvgPath(pathData: string) {
+  const namespace = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(namespace, "svg");
+  const path = document.createElementNS(namespace, "path");
+  svg.style.position = "fixed";
+  svg.style.width = "0";
+  svg.style.height = "0";
+  svg.style.visibility = "hidden";
+  path.setAttribute("d", pathData);
+  svg.append(path);
+  document.body.append(svg);
+
+  try {
+    const length = path.getTotalLength();
+    const samples = Math.max(12, Math.min(140, Math.ceil(length / 18)));
+    return Array.from({ length: samples }, (_, index) => {
+      const point = path.getPointAtLength((index / samples) * length);
+      return { x: point.x, y: point.y };
+    });
+  } finally {
+    svg.remove();
+  }
+}
+
+function useShapeGeometry() {
+  const [geometry, setGeometry] = useState<ShapeGeometry | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.all(
+      sections.map(async (section) => {
+        const response = await fetch(`/shapes/${section.shape}.svg`);
+        const source = await response.text();
+        const documentNode = new DOMParser().parseFromString(source, "image/svg+xml");
+        const svg = documentNode.querySelector("svg");
+        const outerPath = documentNode.querySelector("path");
+        const viewBox = svg?.getAttribute("viewBox")?.split(/\s+/).map(Number);
+        const fullPathData = outerPath?.getAttribute("d");
+
+        if (!viewBox || viewBox.length !== 4 || !fullPathData) {
+          throw new Error(`Unable to read collision geometry for ${section.shape}`);
+        }
+
+        // Ignore secondary subpaths such as the pitcher's handle opening. Matter
+        // models the exterior collision silhouette; holes remain visually open.
+        const outerPathData = fullPathData.split(/(?=M)/).filter(Boolean)[0];
+        return [
+          section.slug,
+          {
+            width: viewBox[2],
+            height: viewBox[3],
+            points: sampleSvgPath(outerPathData),
+          },
+        ] as const;
+      }),
+    ).then((entries) => {
+      if (active) setGeometry(Object.fromEntries(entries) as ShapeGeometry);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return geometry;
+}
 
 function useResolvedPhysics(
   compositionRef: React.RefObject<HTMLElement | null>,
   isMobile: boolean | null,
   revision: number,
+  physics: PhysicsControls,
+  debug: DebugControls,
+  geometry: ShapeGeometry | null,
 ) {
   useLayoutEffect(() => {
     const composition = compositionRef.current;
-    if (!composition || isMobile === null) return;
+    if (!composition || isMobile === null || !geometry) return;
 
     const elements = Array.from(composition.querySelectorAll<HTMLElement>("[data-shape]"));
     if (!elements.length) return;
 
     const engine = Engine.create();
-    engine.gravity.scale = 0;
+    engine.positionIterations = 12;
+    engine.gravity.x = physics.gravityX;
+    engine.gravity.y = physics.gravityY;
+    engine.gravity.scale = physics.gravityScale;
+
+    const scaleForSlug: Record<SectionSlug, number> = {
+      supper: physics.collisionScale.jelly,
+      "sample-menus": physics.collisionScale.pitcher,
+      "how-we-work": physics.collisionScale.chair,
+      about: physics.collisionScale.cup,
+      contact: physics.collisionScale.table,
+    };
 
     const shapeBodies: PhysicsShape[] = elements.map((element) => {
       const slug = element.dataset.sectionSlug as SectionSlug;
@@ -54,40 +199,139 @@ function useResolvedPhysics(
         y: element.offsetTop + height / 2,
       };
       const rotation = parseFloat(isMobile ? section.mobile.rotation : section.desktop.rotation);
-      const scale = collisionScale[slug];
-      const body = Bodies.rectangle(home.x, home.y, width * scale.x, height * scale.y, {
-        angle: (rotation * Math.PI) / 180,
-        inertia: Infinity,
-        isStatic: slug === "how-we-work",
-        isSensor: !isMobile,
-        label: slug,
-      });
+      const rotationRadians = (rotation * Math.PI) / 180;
+      const tunedScale = physics.collisionScale.global * scaleForSlug[slug];
+      const sourceGeometry = geometry[slug];
+      const vertices = sourceGeometry.points.map((point) => ({
+        x: (point.x / sourceGeometry.width) * width,
+        y: (point.y / sourceGeometry.height) * height,
+      }));
+      const vertexBounds = vertices.reduce(
+        (bounds, vertex) => ({
+          minX: Math.min(bounds.minX, vertex.x),
+          minY: Math.min(bounds.minY, vertex.y),
+          maxX: Math.max(bounds.maxX, vertex.x),
+          maxY: Math.max(bounds.maxY, vertex.y),
+        }),
+        { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity },
+      );
+      const body = Bodies.fromVertices(
+        home.x,
+        home.y,
+        [vertices],
+        {
+          friction: physics.friction,
+          frictionAir: physics.frictionAir,
+          restitution: physics.restitution,
+          inertia: Infinity,
+          isStatic: physics.pinChair && slug === "how-we-work",
+          isSensor: !physics.resolveCollisions,
+          slop: 0.02,
+          label: slug,
+        },
+        true,
+        0.01,
+        8,
+        0.01,
+      );
 
-      return { body, element, home };
+      // `fromVertices` recentres a compound body on its centre of mass. Align
+      // its unrotated outline back to the SVG's box, then perform scaling and
+      // rotation around the same centre used by CSS. This keeps the collision
+      // silhouette and the visible artwork in the same coordinate system.
+      const desiredBoundsCenter = {
+        x: home.x + (vertexBounds.minX + vertexBounds.maxX) / 2 - width / 2,
+        y: home.y + (vertexBounds.minY + vertexBounds.maxY) / 2 - height / 2,
+      };
+      Body.translate(body, {
+        x: desiredBoundsCenter.x - (body.bounds.min.x + body.bounds.max.x) / 2,
+        y: desiredBoundsCenter.y - (body.bounds.min.y + body.bounds.max.y) / 2,
+      });
+      Body.scale(body, tunedScale, tunedScale, home);
+      const offsetFromVisualCenter = {
+        x: body.position.x - home.x,
+        y: body.position.y - home.y,
+      };
+      Body.setPosition(body, {
+        x:
+          home.x +
+          offsetFromVisualCenter.x * Math.cos(rotationRadians) -
+          offsetFromVisualCenter.y * Math.sin(rotationRadians),
+        y:
+          home.y +
+          offsetFromVisualCenter.x * Math.sin(rotationRadians) +
+          offsetFromVisualCenter.y * Math.cos(rotationRadians),
+      });
+      Body.rotate(body, rotationRadians);
+
+      return {
+        body,
+        element,
+        startPosition: { x: body.position.x, y: body.position.y },
+      };
     });
 
     Composite.add(engine.world, shapeBodies.map(({ body }) => body));
 
     // Resolve any collisions before the browser paints. The chair is the fixed
     // anchor; the other pieces make only the tiny adjustments needed around it.
-    for (let frame = 0; frame < 28; frame += 1) {
+    for (let frame = 0; frame < physics.simulationSteps; frame += 1) {
       Engine.update(engine, 1000 / 60);
     }
 
     for (const shape of shapeBodies) {
-      const x = shape.body.position.x - shape.home.x;
-      const y = shape.body.position.y - shape.home.y;
+      const x = shape.body.position.x - shape.startPosition.x;
+      const y = shape.body.position.y - shape.startPosition.y;
       const angle = (shape.body.angle * 180) / Math.PI;
       shape.element.style.setProperty("--physics-x", `${x.toFixed(2)}px`);
       shape.element.style.setProperty("--physics-y", `${y.toFixed(2)}px`);
       shape.element.style.setProperty("--physics-rotation", `${angle.toFixed(3)}deg`);
       shape.element.style.setProperty("--physics-counter-rotation", `${(-angle).toFixed(3)}deg`);
     }
+
+    let debugLayer: SVGSVGElement | null = null;
+    if (debug.wireframes || debug.bounds) {
+      const namespace = "http://www.w3.org/2000/svg";
+      debugLayer = document.createElementNS(namespace, "svg");
+      debugLayer.classList.add("physics-debug");
+      debugLayer.setAttribute("viewBox", `0 0 ${composition.clientWidth} ${composition.clientHeight}`);
+      debugLayer.setAttribute("aria-hidden", "true");
+
+      for (const { body } of shapeBodies) {
+        if (debug.wireframes) {
+          const parts = body.parts.length > 1 ? body.parts.slice(1) : [body];
+          for (const part of parts) {
+            const polygon = document.createElementNS(namespace, "polygon");
+            polygon.setAttribute(
+              "points",
+              part.vertices.map((vertex) => `${vertex.x},${vertex.y}`).join(" "),
+            );
+            polygon.setAttribute("data-body", body.label);
+            polygon.classList.add("physics-debug__body");
+            debugLayer.append(polygon);
+          }
+        }
+
+        if (debug.bounds) {
+          const rect = document.createElementNS(namespace, "rect");
+          rect.setAttribute("x", String(body.bounds.min.x));
+          rect.setAttribute("y", String(body.bounds.min.y));
+          rect.setAttribute("width", String(body.bounds.max.x - body.bounds.min.x));
+          rect.setAttribute("height", String(body.bounds.max.y - body.bounds.min.y));
+          rect.setAttribute("data-bound", body.label);
+          rect.classList.add("physics-debug__bounds");
+          debugLayer.append(rect);
+        }
+      }
+
+      composition.append(debugLayer);
+    }
     composition.dataset.physics = "resolved";
     Engine.clear(engine);
 
     return () => {
       delete composition.dataset.physics;
+      debugLayer?.remove();
       for (const { element } of shapeBodies) {
         element.style.removeProperty("--physics-x");
         element.style.removeProperty("--physics-y");
@@ -95,7 +339,29 @@ function useResolvedPhysics(
         element.style.removeProperty("--physics-counter-rotation");
       }
     };
-  }, [compositionRef, isMobile, revision]);
+  }, [
+    compositionRef,
+    debug.bounds,
+    debug.wireframes,
+    isMobile,
+    physics.collisionScale.chair,
+    physics.collisionScale.cup,
+    physics.collisionScale.global,
+    physics.collisionScale.jelly,
+    physics.collisionScale.pitcher,
+    physics.collisionScale.table,
+    physics.friction,
+    physics.frictionAir,
+    physics.gravityScale,
+    physics.gravityX,
+    physics.gravityY,
+    physics.pinChair,
+    physics.resolveCollisions,
+    physics.restitution,
+    physics.simulationSteps,
+    geometry,
+    revision,
+  ]);
 }
 
 function getSlugFromPath(pathname: string): SectionSlug | null {
@@ -105,12 +371,14 @@ function getSlugFromPath(pathname: string): SectionSlug | null {
 
 function ShapeLink({
   section,
+  color,
   active,
   muted,
   onActivate,
   onDeactivate,
 }: {
   section: Section;
+  color: string;
   active: boolean;
   muted: boolean;
   onActivate: () => void;
@@ -128,6 +396,7 @@ function ShapeLink({
     "--m-top": section.mobile.top,
     "--m-width": section.mobile.width,
     "--m-rotation": section.mobile.rotation,
+    "--shape-color": color,
   };
 
   return (
@@ -157,6 +426,24 @@ function ShapeLink({
         <img src={section.image} alt="" style={{ objectPosition: section.imagePosition }} />
       </span>
       <span
+        className="shape-link__color-mask"
+        style={{
+          maskImage: `url(${shapePath})`,
+          WebkitMaskImage: `url(${shapePath})`,
+        }}
+        aria-hidden="true"
+      />
+      {section.slug === "supper" ? (
+        <span
+          className="shape-link__accent-mask"
+          style={{
+            maskImage: "url(/shapes/JellyAccent.svg)",
+            WebkitMaskImage: "url(/shapes/JellyAccent.svg)",
+          }}
+          aria-hidden="true"
+        />
+      ) : null}
+      <span
         className="shape-link__neutral-mask"
         style={{
           maskImage: `url(${shapePath})`,
@@ -174,6 +461,11 @@ function ShapeLink({
 }
 
 export function MoraExperience({ children }: MoraExperienceProps) {
+  const dial = useDialKit("Mora Composition", moraDialConfig, {
+    id: "mora-composition",
+    persist: true,
+  });
+  const geometry = useShapeGeometry();
   const pathname = usePathname();
   const router = useRouter();
   const routeSlug = getSlugFromPath(pathname);
@@ -215,7 +507,27 @@ export function MoraExperience({ children }: MoraExperienceProps) {
     };
   }, []);
 
-  useResolvedPhysics(compositionRef, isMobile, physicsRevision);
+  useResolvedPhysics(
+    compositionRef,
+    isMobile,
+    physicsRevision,
+    dial.physics,
+    dial.debug,
+    geometry,
+  );
+
+  const shapeColors: Record<SectionSlug, string> = {
+    supper: dial.appearance.jelly,
+    "sample-menus": dial.appearance.pitcher,
+    "how-we-work": dial.appearance.chair,
+    about: dial.appearance.cup,
+    contact: dial.appearance.table,
+  };
+
+  const shellStyle: ShapeStyle = {
+    "--paper": dial.appearance.background,
+    "--logo-color": dial.appearance.logo,
+  };
 
   useLayoutEffect(() => {
     if (!shellRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -322,7 +634,7 @@ export function MoraExperience({ children }: MoraExperienceProps) {
   }, [menuOpen]);
 
   return (
-    <div ref={shellRef} className="site-shell">
+    <div ref={shellRef} className="site-shell" style={shellStyle}>
       <a className="skip-link" href="#main-content">Skip to content</a>
 
       <header className="site-header">
@@ -353,6 +665,7 @@ export function MoraExperience({ children }: MoraExperienceProps) {
               <ShapeLink
                 key={section.slug}
                 section={section}
+                color={shapeColors[section.slug]}
                 active={activeSlug === section.slug}
                 muted={hasActive && activeSlug !== section.slug}
                 onActivate={() => isMobile === false && !routeSlug && setHoveredSlug(section.slug)}
@@ -422,6 +735,7 @@ export function MoraExperience({ children }: MoraExperienceProps) {
           </Link>
         ))}
       </nav>
+      <DialRoot position="top-right" theme="dark" />
     </div>
   );
 }

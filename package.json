@@ -10,9 +10,12 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "dialkit": "^2.0.2",
     "gsap": "^3.15.0",
     "matter-js": "^0.20.0",
+    "motion": "^13.4.4",
     "next": "^16.3.6",
+    "poly-decomp": "^0.3.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
