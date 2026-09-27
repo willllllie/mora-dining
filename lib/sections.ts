@@ -106,7 +106,7 @@ export const sections: Section[] = [
     image: "/images/img_4.webp",
     imagePosition: "51% 46%",
     desktop: {
-      left: "59.21%",
+      left: "63.2%",
       top: "10.08%",
       width: "10.63%",
       rotation: "-7.75deg",

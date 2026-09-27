@@ -72,10 +72,11 @@ a {
 .site-logo {
   position: absolute;
   top: clamp(28px, 4.5vh, 58px);
-  left: clamp(28px, 3.1vw, 59px);
+  left: 50%;
   width: clamp(142px, 11.1vw, 213px);
   aspect-ratio: 213 / 65;
   pointer-events: auto;
+  transform: translateX(-50%);
 }
 
 .site-logo span {
@@ -85,6 +86,27 @@ a {
   background: var(--logo-color, var(--paper-bright));
   mask: url("/brand/mora_logo.svg") center / contain no-repeat;
   -webkit-mask: url("/brand/mora_logo.svg") center / contain no-repeat;
+}
+
+.site-active-title {
+  position: absolute;
+  top: clamp(94px, 11.5vh, 138px);
+  left: 50%;
+  width: min(90vw, 900px);
+  color: var(--paper-bright);
+  font-family: var(--font-fasthand), cursive;
+  font-size: clamp(48px, 5vw, 96px);
+  line-height: 0.9;
+  text-align: center;
+  text-wrap: balance;
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  transition: opacity 220ms ease, transform 330ms cubic-bezier(.2,.75,.25,1);
+}
+
+.site-active-title.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .menu-button {
@@ -106,6 +128,8 @@ a {
   width: min(100vw, 177.7778svh);
   height: min(100svh, 56.25vw);
   isolation: isolate;
+  transform: scale(var(--desktop-group-scale, 1));
+  transform-origin: center;
 }
 
 .shape-link {
@@ -120,7 +144,7 @@ a {
   z-index: 1;
   display: block;
   width: var(--d-width);
-  transform: translate3d(var(--physics-x), var(--physics-y), 0) rotate(var(--physics-rotation)) scale(var(--shape-scale));
+  transform: translate3d(var(--physics-x), var(--physics-y), 0) rotate(var(--physics-rotation)) scale(var(--desktop-object-scale, 1)) scale(var(--shape-scale));
   transform-origin: center;
   outline: none;
   cursor: pointer;
@@ -187,12 +211,12 @@ a {
 
 .shape-link__accent-mask {
   z-index: 3;
-  background: #f9372e;
+  background: var(--cherry-color, #f9372e);
 }
 
 .shape-link__neutral-mask {
   z-index: 4;
-  background: #e8e8e8;
+  background: var(--muted-shape-color, #4f4f4f);
   opacity: 0;
 }
 
@@ -222,6 +246,7 @@ a {
   pointer-events: none;
   transform: rotate(var(--physics-counter-rotation)) translateY(14px);
   transition: opacity 220ms ease 50ms, transform 330ms cubic-bezier(.2,.75,.25,1) 50ms;
+  display: none;
 }
 
 .shape-link.is-active .shape-link__base,
@@ -247,6 +272,10 @@ a {
 .shape-link.is-muted .shape-link__color-mask,
 .shape-link.is-muted .shape-link__accent-mask {
   opacity: 0;
+}
+
+.shape-link.is-muted {
+  --shape-scale: 0.99;
 }
 
 .shape-link.is-muted .shape-link__neutral-mask {
@@ -500,6 +529,10 @@ a {
     transform: translateX(-50%);
   }
 
+  .site-active-title {
+    display: none;
+  }
+
   .menu-button {
     position: absolute;
     top: 92px;
@@ -549,6 +582,7 @@ a {
   .shape-composition {
     width: 100%;
     height: 100%;
+    transform: none;
   }
 
   .shape-link {
@@ -557,6 +591,7 @@ a {
     left: var(--m-left);
     top: var(--m-top);
     width: var(--m-width);
+    transform: translate3d(var(--physics-x), var(--physics-y), 0) rotate(var(--physics-rotation)) scale(var(--shape-scale));
   }
 
   .shape-link:hover,
@@ -566,6 +601,7 @@ a {
   }
 
   .shape-link__label {
+    display: block;
     left: 50%;
     top: 50%;
     max-width: min(88vw, 350px);

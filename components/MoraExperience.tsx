@@ -22,11 +22,24 @@ const moraDialConfig = {
   appearance: {
     background: "#262423",
     logo: "#f5f1f0",
+    mutedShapes: "#4f4f4f",
     jelly: "#f4cce2",
+    cherry: "#f9372e",
     pitcher: "#569852",
     chair: "#96bee3",
     cup: "#ed9393",
     table: "#fdce2c",
+  },
+  layout: {
+    desktopGroupScale: [1, 0.6, 1.4, 0.01],
+    desktopShapeScale: {
+      _collapsed: true,
+      jelly: [1, 0.6, 1.4, 0.01],
+      pitcher: [1, 0.6, 1.4, 0.01],
+      chair: [1, 0.6, 1.4, 0.01],
+      cup: [1, 0.6, 1.4, 0.01],
+      table: [1, 0.6, 1.4, 0.01],
+    },
   },
   physics: {
     simulationSteps: [28, 0, 180, 1],
@@ -47,6 +60,14 @@ const moraDialConfig = {
       cup: [1, 0.4, 1.5, 0.01],
       table: [1, 0.4, 1.5, 0.01],
     },
+    collisionWeight: {
+      _collapsed: true,
+      jelly: [1, 0.1, 12, 0.1],
+      pitcher: [1, 0.1, 12, 0.1],
+      chair: [1, 0.1, 12, 0.1],
+      cup: [6, 0.1, 12, 0.1],
+      table: [1, 0.1, 12, 0.1],
+    },
   },
   debug: {
     wireframes: false,
@@ -66,6 +87,13 @@ type PhysicsControls = {
   pinChair: boolean;
   collisionScale: {
     global: number;
+    jelly: number;
+    pitcher: number;
+    chair: number;
+    cup: number;
+    table: number;
+  };
+  collisionWeight: {
     jelly: number;
     pitcher: number;
     chair: number;
@@ -166,6 +194,7 @@ function useResolvedPhysics(
   revision: number,
   physics: PhysicsControls,
   debug: DebugControls,
+  desktopShapeScales: Record<SectionSlug, number>,
   geometry: ShapeGeometry | null,
 ) {
   useLayoutEffect(() => {
@@ -188,6 +217,13 @@ function useResolvedPhysics(
       about: physics.collisionScale.cup,
       contact: physics.collisionScale.table,
     };
+    const weightForSlug: Record<SectionSlug, number> = {
+      supper: physics.collisionWeight.jelly,
+      "sample-menus": physics.collisionWeight.pitcher,
+      "how-we-work": physics.collisionWeight.chair,
+      about: physics.collisionWeight.cup,
+      contact: physics.collisionWeight.table,
+    };
 
     const shapeBodies: PhysicsShape[] = elements.map((element) => {
       const slug = element.dataset.sectionSlug as SectionSlug;
@@ -200,7 +236,8 @@ function useResolvedPhysics(
       };
       const rotation = parseFloat(isMobile ? section.mobile.rotation : section.desktop.rotation);
       const rotationRadians = (rotation * Math.PI) / 180;
-      const tunedScale = physics.collisionScale.global * scaleForSlug[slug];
+      const visualScale = isMobile ? 1 : desktopShapeScales[slug];
+      const tunedScale = visualScale * physics.collisionScale.global * scaleForSlug[slug];
       const sourceGeometry = geometry[slug];
       const vertices = sourceGeometry.points.map((point) => ({
         x: (point.x / sourceGeometry.width) * width,
@@ -248,6 +285,7 @@ function useResolvedPhysics(
         y: desiredBoundsCenter.y - (body.bounds.min.y + body.bounds.max.y) / 2,
       });
       Body.scale(body, tunedScale, tunedScale, home);
+      if (!body.isStatic) Body.setMass(body, body.mass * weightForSlug[slug]);
       const offsetFromVisualCenter = {
         x: body.position.x - home.x,
         y: body.position.y - home.y,
@@ -343,6 +381,7 @@ function useResolvedPhysics(
     compositionRef,
     debug.bounds,
     debug.wireframes,
+    desktopShapeScales,
     isMobile,
     physics.collisionScale.chair,
     physics.collisionScale.cup,
@@ -350,6 +389,11 @@ function useResolvedPhysics(
     physics.collisionScale.jelly,
     physics.collisionScale.pitcher,
     physics.collisionScale.table,
+    physics.collisionWeight.chair,
+    physics.collisionWeight.cup,
+    physics.collisionWeight.jelly,
+    physics.collisionWeight.pitcher,
+    physics.collisionWeight.table,
     physics.friction,
     physics.frictionAir,
     physics.gravityScale,
@@ -372,6 +416,7 @@ function getSlugFromPath(pathname: string): SectionSlug | null {
 function ShapeLink({
   section,
   color,
+  desktopScale,
   active,
   muted,
   onActivate,
@@ -379,6 +424,7 @@ function ShapeLink({
 }: {
   section: Section;
   color: string;
+  desktopScale: number;
   active: boolean;
   muted: boolean;
   onActivate: () => void;
@@ -397,6 +443,7 @@ function ShapeLink({
     "--m-width": section.mobile.width,
     "--m-rotation": section.mobile.rotation,
     "--shape-color": color,
+    "--desktop-object-scale": String(desktopScale),
   };
 
   return (
@@ -494,6 +541,23 @@ export function MoraExperience({ children }: MoraExperienceProps) {
     return () => query.removeEventListener("change", sync);
   }, []);
 
+  const desktopShapeScales = useMemo<Record<SectionSlug, number>>(
+    () => ({
+      supper: dial.layout.desktopShapeScale.jelly,
+      "sample-menus": dial.layout.desktopShapeScale.pitcher,
+      "how-we-work": dial.layout.desktopShapeScale.chair,
+      about: dial.layout.desktopShapeScale.cup,
+      contact: dial.layout.desktopShapeScale.table,
+    }),
+    [
+      dial.layout.desktopShapeScale.chair,
+      dial.layout.desktopShapeScale.cup,
+      dial.layout.desktopShapeScale.jelly,
+      dial.layout.desktopShapeScale.pitcher,
+      dial.layout.desktopShapeScale.table,
+    ],
+  );
+
   useEffect(() => {
     let resizeTimer = 0;
     const refreshPhysics = () => {
@@ -513,6 +577,7 @@ export function MoraExperience({ children }: MoraExperienceProps) {
     physicsRevision,
     dial.physics,
     dial.debug,
+    desktopShapeScales,
     geometry,
   );
 
@@ -527,6 +592,9 @@ export function MoraExperience({ children }: MoraExperienceProps) {
   const shellStyle: ShapeStyle = {
     "--paper": dial.appearance.background,
     "--logo-color": dial.appearance.logo,
+    "--muted-shape-color": dial.appearance.mutedShapes,
+    "--cherry-color": dial.appearance.cherry,
+    "--desktop-group-scale": String(dial.layout.desktopGroupScale),
   };
 
   useLayoutEffect(() => {
@@ -641,6 +709,12 @@ export function MoraExperience({ children }: MoraExperienceProps) {
         <Link href="/" className="site-logo" aria-label="Mora Dining home" data-logo>
           <span aria-hidden="true" />
         </Link>
+        <div
+          className={`site-active-title${activeSlug ? " is-visible" : ""}`}
+          aria-hidden="true"
+        >
+          {activeSlug ? getSection(activeSlug)?.title : ""}
+        </div>
         <button
           className={`menu-button${menuOpen ? " is-open" : ""}`}
           type="button"
@@ -666,6 +740,7 @@ export function MoraExperience({ children }: MoraExperienceProps) {
                 key={section.slug}
                 section={section}
                 color={shapeColors[section.slug]}
+                desktopScale={desktopShapeScales[section.slug]}
                 active={activeSlug === section.slug}
                 muted={hasActive && activeSlug !== section.slug}
                 onActivate={() => isMobile === false && !routeSlug && setHoveredSlug(section.slug)}
