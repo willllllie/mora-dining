@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { LandingPreview } from "@/components/LandingPreview";
-import "./landing.css";
 
 export const metadata: Metadata = {
   title: "New landing preview",
@@ -8,5 +6,7 @@ export const metadata: Metadata = {
 };
 
 export default function LandingTestPage() {
-  return <LandingPreview />;
+  // The persistent route-aware preview lives in ExperienceRouter so section
+  // navigation can retain its landing composition behind the panel.
+  return null;
 }

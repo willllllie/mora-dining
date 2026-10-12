@@ -2,12 +2,17 @@
 
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { LandingPreview } from "@/components/LandingPreview";
 import { MoraExperience } from "@/components/MoraExperience";
+import { isSectionSlug } from "@/lib/sections";
 
 export function ExperienceRouter({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname.replace(/\/+$/, "") === "/landing-test") return <>{children}</>;
+  const route = pathname.replace(/\/+$/, "");
+  if (route === "/landing-test" || isSectionSlug(route.slice(1))) {
+    return <LandingPreview />;
+  }
 
   return <MoraExperience>{children}</MoraExperience>;
 }
