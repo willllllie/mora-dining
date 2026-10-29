@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ThirdVersion } from "@/components/ThirdVersion";
 
 export const metadata: Metadata = {
   title: "Third version preview",
@@ -7,5 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function ThirdVersionPage() {
-  return <ThirdVersion />;
+  return null;
 }

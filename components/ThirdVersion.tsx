@@ -5,14 +5,17 @@ import type { DialConfig } from "dialkit";
 import "dialkit/styles.css";
 import gsap from "gsap";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { isSectionSlug, type SectionSlug } from "@/lib/sections";
 import "@/app/third-version/third-version.css";
 
 type ShapeName = "jelly" | "chair" | "jug" | "cup" | "table";
 type ShapeStyle = CSSProperties & Record<`--${string}`, string>;
 type Shape = {
   name: ShapeName;
+  slug: SectionSlug;
   title: string;
   hoverTitle?: string;
   href: string;
@@ -23,12 +26,37 @@ type Shape = {
 };
 
 const shapes: Shape[] = [
-  { name: "jelly", title: "Contact", href: "/contact/", width: 348.887, height: 350.694, rotation: -5.86 },
-  { name: "chair", title: "About us", href: "/about/", width: 408.706, height: 492.633, rotation: 23.19 },
-  { name: "jug", title: "Sample Menus", hoverTitle: "Sample\nMenus", href: "/sample-menus/", width: 261.221, height: 344.09, rotation: 173.08, flipY: true },
-  { name: "cup", title: "Offerings", href: "/how-we-work/", width: 169.391, height: 339.827, rotation: 16.84 },
-  { name: "table", title: "Supper Supper Supper", hoverTitle: "Supper\nSupper\nSupper", href: "/supper/", width: 553, height: 738, rotation: 0 },
+  { name: "jelly", slug: "contact", title: "Contact", href: "/third-version/contact/", width: 348.887, height: 350.694, rotation: -5.86 },
+  { name: "chair", slug: "supper", title: "Supper Supper Supper", hoverTitle: "Supper\nSupper\nSupper", href: "/third-version/supper/", width: 408.706, height: 492.633, rotation: 23.19 },
+  { name: "jug", slug: "sample-menus", title: "Sample Menus", hoverTitle: "Sample\nMenus", href: "/third-version/sample-menus/", width: 261.221, height: 344.09, rotation: 173.08, flipY: true },
+  { name: "cup", slug: "about", title: "About us", href: "/third-version/about/", width: 169.391, height: 339.827, rotation: 16.84 },
+  { name: "table", slug: "how-we-work", title: "Offerings", href: "/third-version/how-we-work/", width: 553, height: 738, rotation: 0 },
 ];
+
+const panelShapes: Record<SectionSlug, ShapeName> = {
+  about: "cup",
+  "how-we-work": "table",
+  "sample-menus": "jug",
+  supper: "chair",
+  contact: "jelly",
+};
+
+function SectionCopy({ slug }: { slug: SectionSlug }) {
+  if (slug === "about") return <>
+    <p>We are two friends who met working in a canalside restaurant in London. Grace is from Cornwall and Sophie is from Northern California, both places deeply connected to the sea and the seasonal rhythms of the coast. We share a love of excellent food done simply, craft, and hosting, and decided to start MORA to share this with others.</p>
+    <p>In Cornish Mora means “to go out to sea”; for us it evokes a sense of place, seasonality and adventure, as well as the ambition to create something of our own.</p>
+  </>;
+  if (slug === "how-we-work") return <>
+    <p>We are a boutique catering company specializing in seasonal, simple food done well. We believe the best food comes from exceptional ingredients and like to work with those who think so too. We work with our friends at Natoora, Flock and Herd Butchery, Neal’s Yard, and others and our wines are sourced from Tutto.</p>
+    <p>We provide catering for weddings, photo shoots, offices, parties, and private households. We also host a recurring supper club, SUPPER SUPPER SUPPER.</p>
+  </>;
+  if (slug === "supper") return <>
+    <p>SUPPER SUPPER SUPPER is our recurring supper club. It’s our favorite way to bring together a group of people for what we think is a perfect evening. Held in an outdoor/indoor courtyard of a converted clock factory in Camberwell, it begins with a welcome cocktail and mingling before switching to a family style three course meal. We’re lucky to have guests that come back each time – if you’d like to be notified by email of the next event, sign up below.</p>
+    <p>Get notified</p>
+  </>;
+  if (slug === "contact") return <p>Email address coming soon.</p>;
+  return <p>Sample menus coming soon.</p>;
+}
 
 function inverseHex(color: string) {
   const value = color.replace("#", "");
@@ -40,34 +68,51 @@ function inverseHex(color: string) {
 
 const dialConfig = {
   appearance: {
-    background: "#ecebeb",
+    background: "#fceedf",
     logo: "#000000",
-    unfocused: "#d6d6d6",
-    jelly: "#ED9393",
-    chair: "#351D19",
-    jug: "#7A7357",
-    cup: "#FE6229",
-    table: "#96BEE3",
+    unfocused: "#c7c5c547",
+    hoverColors: false,
+    jelly: "#F79093",
+    cherry: "#B43E0C",
+    chair: "#4C9AE5",
+    jug: "#aed92b",
+    cup: "#B1D3F3",
+    table: "#4D3322",
     hoverTypeSize: [48, 24, 96, 1],
   },
+  panels: {
+    about: { background: "#72A0CC", text: "#F5F1F0", shape: "#96BEE3" },
+    offerings: { background: "#92522F", text: "#E5F0A4", shape: "#B06841" },
+    sampleMenus: { background: "#351D19", text: "#F5F1F0", shape: "#96BEE3" },
+    supper: { background: "#7A7357", text: "#F4CCD5", shape: "#569852" },
+    contact: { background: "#D0999A", text: "#500067", shape: "#F3C6DD", cherry: "#F26A47" },
+  },
   intro: {
-    duration: [0.72, 0.2, 1.5, 0.01],
-    stagger: [0.14, 0, 0.5, 0.01],
-    overshoot: [2.4, 0, 5, 0.1],
+    duration: [0.28, 0.2, 1.5, 0.01],
+    stagger: [0.05, 0, 0.5, 0.01],
+    overshoot: [0.3, 0, 5, 0.1],
     replay: { type: "action", label: "Replay intro" },
   },
 } satisfies DialConfig;
 
 export function ThirdVersion() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const pathSegment = pathname.replace(/\/+$/, "").split("/")[2];
+  const routeSlug = pathSegment && isSectionSlug(pathSegment) ? pathSegment : null;
   const stageRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const cursorLabelRef = useRef<HTMLSpanElement>(null);
   const clippedLabelRef = useRef<HTMLSpanElement>(null);
   const clippedTextRef = useRef<HTMLSpanElement>(null);
   const [activeShape, setActiveShape] = useState<ShapeName | null>(null);
+  const [visibleSlug, setVisibleSlug] = useState<SectionSlug | null>(routeSlug);
+  const [panelClosing, setPanelClosing] = useState(false);
+  const lastSlugRef = useRef<SectionSlug | null>(routeSlug);
   const [replay, setReplay] = useState(0);
   const dial = useDialKit("Mora Third Version", dialConfig, {
     // A fresh key makes the revised palette the default for existing previews too.
-    id: "mora-third-version-v2",
+    id: "mora-third-version-v3",
     persist: true,
     onAction: (action) => {
       if (action === "intro.replay") {
@@ -76,6 +121,51 @@ export function ThirdVersion() {
       }
     },
   });
+
+  useEffect(() => {
+    if (routeSlug) {
+      lastSlugRef.current = routeSlug;
+      const frame = requestAnimationFrame(() => {
+        setVisibleSlug(routeSlug);
+        setPanelClosing(false);
+        setActiveShape(null);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+    if (!visibleSlug) return;
+    const frame = requestAnimationFrame(() => setPanelClosing(true));
+    const timeout = window.setTimeout(() => {
+      setVisibleSlug(null);
+      const shape = shapes.find((item) => item.slug === lastSlugRef.current);
+      if (shape) stageRef.current?.querySelector<HTMLElement>(`.third-shape--${shape.name}`)?.focus();
+    }, window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 380);
+    return () => { cancelAnimationFrame(frame); clearTimeout(timeout); };
+  }, [routeSlug, visibleSlug]);
+
+  useEffect(() => {
+    if (!visibleSlug || panelClosing) return;
+    const focus = window.setTimeout(() => panelRef.current?.focus(), 30);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        router.push("/third-version/");
+      }
+      if (event.key !== "Tab" || !panelRef.current) return;
+      const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])"));
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panelRef.current)) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || document.activeElement === panelRef.current)) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => { clearTimeout(focus); document.removeEventListener("keydown", onKeyDown); };
+  }, [visibleSlug, panelClosing, router]);
+
+  useEffect(() => {
+    document.body.style.overflow = visibleSlug ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [visibleSlug]);
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
@@ -151,13 +241,22 @@ export function ThirdVersion() {
     "--third-background": colors.background,
     "--third-logo": colors.logo,
     "--third-unfocused": colors.unfocused,
+    "--third-cherry": colors.cherry,
     "--third-tooltip-base": inverseHex(colors.background),
     "--third-hover-type-size": `${colors.hoverTypeSize}px`,
   } as ShapeStyle;
   const selected = shapes.find((shape) => shape.name === activeShape);
+  const panelTheme = visibleSlug ? dial.panels[visibleSlug === "how-we-work" ? "offerings" : visibleSlug === "sample-menus" ? "sampleMenus" : visibleSlug] : null;
+  const panelStyle = panelTheme ? {
+    "--third-panel-background": panelTheme.background,
+    "--third-panel-text": panelTheme.text,
+    "--third-panel-shape": panelTheme.shape,
+    "--third-panel-cherry": dial.panels.contact.cherry,
+    "--third-panel-close": visibleSlug === "contact" ? panelTheme.text : panelTheme.background,
+  } as ShapeStyle : undefined;
 
   return (
-    <main className="third-version" ref={stageRef} style={stageStyle} data-active={activeShape !== null}>
+    <main className="third-version" ref={stageRef} style={stageStyle} data-active={activeShape !== null} data-hover-colors={colors.hoverColors ? "on" : "off"} data-panel-open={visibleSlug !== null}>
       <header className="third-header">
         <Link href="/third-version/" onMouseEnter={() => setActiveShape(null)} onFocus={() => setActiveShape(null)}>MORA</Link>
       </header>
@@ -170,12 +269,14 @@ export function ThirdVersion() {
             aria-label={shape.title}
             data-selected={activeShape === shape.name}
             onPointerEnter={(event) => {
+              if (visibleSlug) return;
               positionLabel(shape, event.currentTarget, event.clientX, event.clientY);
               setActiveShape(shape.name);
             }}
-            onPointerMove={(event) => positionLabel(shape, event.currentTarget, event.clientX, event.clientY)}
+            onPointerMove={(event) => { if (!visibleSlug) positionLabel(shape, event.currentTarget, event.clientX, event.clientY); }}
             onPointerLeave={() => setActiveShape(null)}
             onFocus={(event) => {
+              if (visibleSlug) return;
               const rect = event.currentTarget.getBoundingClientRect();
               positionLabel(shape, event.currentTarget, rect.left + rect.width / 2, rect.top + rect.height / 2);
               setActiveShape(shape.name);
@@ -193,6 +294,7 @@ export function ThirdVersion() {
               <span className="third-shape__art">
                 <span className="third-shape__base" aria-hidden="true" />
                 <span className="third-shape__photo" aria-hidden="true" />
+                {shape.name === "jelly" && <span className="third-shape__cherry" aria-hidden="true" />}
               </span>
             </span>
           </Link>
@@ -212,6 +314,19 @@ export function ThirdVersion() {
       >
         <span ref={clippedTextRef} className="third-pointer-label-ink">{selected?.hoverTitle ?? selected?.title ?? ""}</span>
       </span>
+      {visibleSlug && <div className={`third-overlay${panelClosing ? " is-closing" : ""}`}>
+        <Link className="third-overlay__backdrop" href="/third-version/" aria-label="Close section" />
+        <aside ref={panelRef} className="third-panel" data-slug={visibleSlug} style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="third-panel-title" tabIndex={-1}>
+          <div className="third-panel__frame">
+            <h1 id="third-panel-title">{shapes.find((shape) => shape.slug === visibleSlug)?.title}</h1>
+            <span className={`third-panel__shape third-panel__shape--${panelShapes[visibleSlug]}`} style={{ "--third-panel-shape-mask": `url(/third-shapes/${panelShapes[visibleSlug]}.svg)` } as ShapeStyle} aria-hidden="true">
+              {visibleSlug === "contact" && <span className="third-panel__shape-cherry" />}
+            </span>
+            <div className="third-panel__copy"><SectionCopy slug={visibleSlug} /></div>
+          </div>
+          <Link className="third-panel__close" href="/third-version/">Close</Link>
+        </aside>
+      </div>}
       <DialRoot position="top-right" theme="dark" defaultOpen={false} />
     </main>
   );
