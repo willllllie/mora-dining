@@ -10,6 +10,8 @@ export function ExperienceRouter({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   const route = pathname.replace(/\/+$/, "");
+  if (route === "/third-version") return <>{children}</>;
+
   if (route === "/landing-test" || isSectionSlug(route.slice(1))) {
     return <LandingPreview />;
   }
