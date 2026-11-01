@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${fasthand.variable} ${areal.variable}`}>
+    <html lang="en" className={`${fasthand.variable} ${areal.variable}`} data-scroll-behavior="smooth">
       <body>
         <ExperienceRouter>{children}</ExperienceRouter>
       </body>

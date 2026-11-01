@@ -1,0 +1,126 @@
+.riso-playground {
+  min-height: 100svh;
+  padding: 28px;
+  background: #171717;
+  color: #f4f0e8;
+  font-family: var(--font-areal), Arial, sans-serif;
+}
+
+.riso-playground__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.riso-playground__header h1 { margin: 0; font-size: clamp(32px, 5vw, 72px); line-height: .95; }
+.riso-playground__header a { color: inherit; font-size: 16px; }
+.riso-playground__eyebrow { margin: 0 0 8px; color: #aaa; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+
+.riso-playground__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.riso-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid #363636;
+  border-radius: 10px;
+  background: #202020;
+}
+
+.riso-tool-group span { padding: 0 6px; color: #aaa; font-size: 12px; text-transform: uppercase; }
+.riso-tool-group button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #454545;
+  border-radius: 6px;
+  background: #292929;
+  color: #eee;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.riso-tool-group button:hover,
+.riso-tool-group button[data-active="true"] { border-color: #f3a36f; background: #4a2e20; }
+.riso-tool-group output { min-width: 72px; padding: 0 8px; color: #f3a36f; font-size: 12px; }
+
+.riso-playground__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 20px;
+  min-height: 720px;
+}
+
+.riso-preview-viewport {
+  position: relative;
+  min-height: 720px;
+  overflow: auto;
+  border: 1px solid #363636;
+  border-radius: 14px;
+  background: #111;
+}
+
+.riso-preview-stage {
+  --riso-stage-width: 660px;
+  --riso-stage-height: 880px;
+  --riso-art-width: 460px;
+  --riso-split: 50%;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: max(100%, var(--riso-stage-width));
+  height: max(100%, var(--riso-stage-height));
+  min-height: 720px;
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.riso-preview-stage[data-background="transparent"] {
+  background-color: transparent;
+  background-image: linear-gradient(45deg, #dedede 25%, transparent 25%), linear-gradient(-45deg, #dedede 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #dedede 75%), linear-gradient(-45deg, transparent 75%, #dedede 75%);
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+  background-size: 20px 20px;
+}
+.riso-preview-stage[data-background="black"] { background: #000; }
+.riso-preview-stage[data-background="warm-white"] { background: #fceedf; }
+
+.riso-preview-art {
+  position: relative;
+  width: var(--riso-art-width);
+  aspect-ratio: 553 / 738;
+}
+
+.riso-preview-graphic { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.riso-preview-effect { position: absolute; inset: 0; overflow: hidden; clip-path: inset(0 0 0 var(--riso-split)); }
+.riso-preview-divider { position: absolute; z-index: 3; top: -24px; bottom: -24px; left: var(--riso-split); width: 2px; background: #ff5d2f; transform: translateX(-1px); }
+.riso-preview-divider::after { position: absolute; top: 50%; left: 50%; width: 22px; height: 42px; border-radius: 999px; background: #ff5d2f; content: ""; transform: translate(-50%, -50%); }
+.riso-preview-label { position: absolute; z-index: 4; top: 12px; padding: 5px 8px; border-radius: 4px; background: rgb(0 0 0 / 62%); color: white; font-size: 12px; }
+.riso-preview-label--before { left: 12px; }
+.riso-preview-label--after { right: 12px; }
+
+.riso-playground__dial {
+  overflow: hidden auto;
+  border: 1px solid #363636;
+  border-radius: 14px;
+  background: #202020;
+}
+
+@media (max-width: 960px) {
+  .riso-playground { padding: 18px; }
+  .riso-playground__workspace { grid-template-columns: 1fr; }
+  .riso-playground__dial { min-height: 600px; }
+}
+
+@media (max-width: 640px) {
+  .riso-playground__header { flex-direction: column; }
+  .riso-tool-group { width: 100%; flex-wrap: wrap; }
+  .riso-preview-stage { min-width: 420px; }
+}

@@ -68,17 +68,19 @@ function inverseHex(color: string) {
 
 const dialConfig = {
   appearance: {
-    background: "#fceedf",
-    logo: "#000000",
-    unfocused: "#c7c5c547",
+    background: "#f1ede9",
+    logo: "#040237",
+    unfocused: "#d8d6d41a",
     hoverColors: false,
-    jelly: "#F79093",
+    jelly: "#FE8F99",
     cherry: "#B43E0C",
-    chair: "#4C9AE5",
-    jug: "#aed92b",
-    cup: "#B1D3F3",
-    table: "#4D3322",
-    hoverTypeSize: [48, 24, 96, 1],
+    chair: "#5FA5E7",
+    jug: "#ADD91F",
+    cup: "#C3E1F9",
+    table: "#5B4537",
+    textureOpacity: [100, 0, 100, 1],
+    hoverTextureOpacity: [46, 0, 100, 1],
+    hoverTypeSize: [50, 24, 96, 1],
   },
   panels: {
     about: { background: "#72A0CC", text: "#F5F1F0", shape: "#96BEE3" },
@@ -112,7 +114,7 @@ export function ThirdVersion() {
   const [replay, setReplay] = useState(0);
   const dial = useDialKit("Mora Third Version", dialConfig, {
     // A fresh key makes the revised palette the default for existing previews too.
-    id: "mora-third-version-v3",
+    id: "mora-third-version-v4",
     persist: true,
     onAction: (action) => {
       if (action === "intro.replay") {
@@ -242,6 +244,8 @@ export function ThirdVersion() {
     "--third-logo": colors.logo,
     "--third-unfocused": colors.unfocused,
     "--third-cherry": colors.cherry,
+    "--third-texture-opacity": String(colors.textureOpacity / 100),
+    "--third-hover-texture-opacity": String(colors.hoverTextureOpacity / 100),
     "--third-tooltip-base": inverseHex(colors.background),
     "--third-hover-type-size": `${colors.hoverTypeSize}px`,
   } as ShapeStyle;
@@ -261,7 +265,11 @@ export function ThirdVersion() {
         <Link href="/third-version/" onMouseEnter={() => setActiveShape(null)} onFocus={() => setActiveShape(null)}>MORA</Link>
       </header>
       <div className="third-composition">
-        {shapes.map((shape) => (
+        {shapes.map((shape) => {
+          const shapeColor = activeShape && activeShape !== shape.name && !colors.hoverColors
+            ? colors.unfocused
+            : colors[shape.name];
+          return (
           <Link
             key={shape.name}
             className={`third-shape third-shape--${shape.name}`}
@@ -285,20 +293,26 @@ export function ThirdVersion() {
             style={{
               "--shape-mask": `url(/third-shapes/${shape.name}.svg)`,
               "--shape-photo": `url(/landing-hover/${shape.name}.png)`,
-              "--shape-color": colors[shape.name],
+              "--shape-color": shapeColor,
               "--shape-width": `${shape.width}px`,
               "--shape-height": `${shape.height}px`,
             } as ShapeStyle}
           >
             <span className="third-shape__pop">
               <span className="third-shape__art">
-                <span className="third-shape__base" aria-hidden="true" />
+                <span className="third-shape__color" aria-hidden="true" />
+                <span className="third-shape__texture" aria-hidden="true" />
                 <span className="third-shape__photo" aria-hidden="true" />
-                {shape.name === "jelly" && <span className="third-shape__cherry" aria-hidden="true" />}
+                {shape.name === "jelly" && <>
+                  <span className="third-shape__cherry-color" aria-hidden="true" />
+                  <span className="third-shape__cherry-texture" aria-hidden="true" />
+                  <span className="third-shape__cherry" aria-hidden="true" />
+                </>}
               </span>
             </span>
           </Link>
-        ))}
+          );
+        })}
       </div>
       <span
         ref={cursorLabelRef}
@@ -319,8 +333,17 @@ export function ThirdVersion() {
         <aside ref={panelRef} className="third-panel" data-slug={visibleSlug} style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="third-panel-title" tabIndex={-1}>
           <div className="third-panel__frame">
             <h1 id="third-panel-title">{shapes.find((shape) => shape.slug === visibleSlug)?.title}</h1>
-            <span className={`third-panel__shape third-panel__shape--${panelShapes[visibleSlug]}`} style={{ "--third-panel-shape-mask": `url(/third-shapes/${panelShapes[visibleSlug]}.svg)` } as ShapeStyle} aria-hidden="true">
-              {visibleSlug === "contact" && <span className="third-panel__shape-cherry" />}
+            <span
+              className={`third-panel__shape third-panel__shape--${panelShapes[visibleSlug]}`}
+              style={{ "--third-panel-shape-mask": `url(/third-shapes/${panelShapes[visibleSlug]}.svg)` } as ShapeStyle}
+              aria-hidden="true"
+            >
+              <span className="third-panel__shape-color" />
+              <span className="third-panel__shape-texture" />
+              {visibleSlug === "contact" && <>
+                <span className="third-panel__shape-cherry" />
+                <span className="third-panel__shape-cherry-texture" />
+              </>}
             </span>
             <div className="third-panel__copy"><SectionCopy slug={visibleSlug} /></div>
           </div>
