@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { RisoPlayground } from "@/components/riso/RisoPlayground";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Mora Risograph Playground",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function RisoPlaygroundPage() {
-  return <RisoPlayground />;
+  redirect("/");
 }

@@ -26,11 +26,11 @@ type Shape = {
 };
 
 const shapes: Shape[] = [
-  { name: "jelly", slug: "contact", title: "Contact", href: "/third-version/contact/", width: 348.887, height: 350.694, rotation: -5.86 },
-  { name: "chair", slug: "supper", title: "Supper Supper Supper", hoverTitle: "Supper\nSupper\nSupper", href: "/third-version/supper/", width: 408.706, height: 492.633, rotation: 23.19 },
-  { name: "jug", slug: "sample-menus", title: "Sample Menus", hoverTitle: "Sample\nMenus", href: "/third-version/sample-menus/", width: 261.221, height: 344.09, rotation: 173.08, flipY: true },
-  { name: "cup", slug: "about", title: "About us", href: "/third-version/about/", width: 169.391, height: 339.827, rotation: 16.84 },
-  { name: "table", slug: "how-we-work", title: "Offerings", href: "/third-version/how-we-work/", width: 553, height: 738, rotation: 0 },
+  { name: "jelly", slug: "contact", title: "Contact", href: "/contact/", width: 348.887, height: 350.694, rotation: -5.86 },
+  { name: "chair", slug: "supper", title: "Supper Supper Supper", hoverTitle: "Supper\nSupper\nSupper", href: "/supper/", width: 408.706, height: 492.633, rotation: 23.19 },
+  { name: "jug", slug: "sample-menus", title: "Sample Menus", hoverTitle: "Sample\nMenus", href: "/sample-menus/", width: 261.221, height: 344.09, rotation: 173.08, flipY: true },
+  { name: "cup", slug: "about", title: "About us", href: "/about/", width: 169.391, height: 339.827, rotation: 16.84 },
+  { name: "table", slug: "how-we-work", title: "Offerings", href: "/how-we-work/", width: 553, height: 738, rotation: 0 },
 ];
 
 const panelShapes: Record<SectionSlug, ShapeName> = {
@@ -100,7 +100,7 @@ const dialConfig = {
 export function ThirdVersion() {
   const pathname = usePathname();
   const router = useRouter();
-  const pathSegment = pathname.replace(/\/+$/, "").split("/")[2];
+  const pathSegment = pathname.replace(/^\/+|\/+$/g, "").split("/")[0];
   const routeSlug = pathSegment && isSectionSlug(pathSegment) ? pathSegment : null;
   const stageRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
@@ -150,7 +150,7 @@ export function ThirdVersion() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        router.push("/third-version/");
+        router.push("/");
       }
       if (event.key !== "Tab" || !panelRef.current) return;
       const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])"));
@@ -274,12 +274,12 @@ export function ThirdVersion() {
   return (
     <main className="third-version" ref={stageRef} style={stageStyle} data-active={activeShape !== null} data-hover-colors={colors.hoverColors ? "on" : "off"} data-panel-open={visibleSlug !== null}>
       <header className="third-header">
-        <Link href="/third-version/" onMouseEnter={() => setActiveShape(null)} onFocus={() => setActiveShape(null)}>MORA</Link>
+        <Link href="/" onMouseEnter={() => setActiveShape(null)} onFocus={() => setActiveShape(null)}>MORA</Link>
       </header>
       <div className="third-composition">
         <Link
           className="third-mobile-logo"
-          href="/third-version/"
+          href="/"
           onFocus={() => setActiveShape(null)}
         >MORA</Link>
         {shapes.map((shape) => {
@@ -346,7 +346,7 @@ export function ThirdVersion() {
         <span ref={clippedTextRef} className="third-pointer-label-ink">{selected?.hoverTitle ?? selected?.title ?? ""}</span>
       </span>
       {visibleSlug && <div className={`third-overlay${panelClosing ? " is-closing" : ""}`}>
-        <Link className="third-overlay__backdrop" href="/third-version/" aria-label="Close section" />
+        <Link className="third-overlay__backdrop" href="/" aria-label="Close section" />
         <aside ref={panelRef} className="third-panel" data-slug={visibleSlug} style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="third-panel-title" tabIndex={-1}>
           <div className="third-panel__frame">
             <h1 id="third-panel-title">{shapes.find((shape) => shape.slug === visibleSlug)?.title}</h1>
@@ -364,7 +364,7 @@ export function ThirdVersion() {
             </span>
             <div className="third-panel__copy"><SectionCopy slug={visibleSlug} /></div>
           </div>
-          <Link className="third-panel__close" href="/third-version/">Close</Link>
+          <Link className="third-panel__close" href="/">Close</Link>
         </aside>
       </div>}
       <DialRoot position="top-right" theme="dark" defaultOpen={false} />

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Third version preview",
@@ -6,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ThirdVersionPage() {
-  return null;
+  redirect("/");
 }

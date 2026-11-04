@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "New landing preview",
@@ -6,7 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LandingTestPage() {
-  // The persistent route-aware preview lives in ExperienceRouter so section
-  // navigation can retain its landing composition behind the panel.
-  return null;
+  redirect("/");
 }

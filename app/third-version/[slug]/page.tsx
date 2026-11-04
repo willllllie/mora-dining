@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { isSectionSlug, sectionSlugs } from "@/lib/sections";
 
 type SectionPageProps = { params: Promise<{ slug: string }> };
@@ -17,5 +17,5 @@ export async function generateMetadata({ params }: SectionPageProps): Promise<Me
 export default async function ThirdVersionSectionPage({ params }: SectionPageProps) {
   const { slug } = await params;
   if (!isSectionSlug(slug)) notFound();
-  return null;
+  redirect(`/${slug}/`);
 }
