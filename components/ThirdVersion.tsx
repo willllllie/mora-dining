@@ -183,10 +183,10 @@ export function ThirdVersion() {
       // centered cluster: 10% above and 10% below.
       const heightScale = (stage.clientHeight * verticalContentRatio) / compositionHeight;
       const scale = Math.max(0.1, Math.min(1, widthScale, heightScale));
-      const mobileLayoutScale = Math.min(1, stage.clientWidth / 390);
+      const mobileLayoutScale = Math.min(1, stage.clientWidth / 393);
       stage.style.setProperty("--composition-scale", String(scale));
       stage.style.setProperty("--mobile-layout-scale", String(mobileLayoutScale));
-      stage.style.setProperty("--mobile-layout-height", `${844 * mobileLayoutScale}px`);
+      stage.style.setProperty("--mobile-layout-height", `${852 * mobileLayoutScale}px`);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(stage);
