@@ -173,8 +173,20 @@ export function ThirdVersion() {
     const stage = stageRef.current;
     if (!stage) return;
     const resize = () => {
-      const scale = Math.min(stage.clientWidth / 1920, stage.clientHeight / 1114);
+      const desktopSideGutter = 24;
+      const compositionWidth = 1455.917;
+      const compositionHeight = 903;
+      const verticalContentRatio = 0.8;
+      const availableWidth = Math.max(0, stage.clientWidth - desktopSideGutter * 2);
+      const widthScale = availableWidth / compositionWidth;
+      // Reserve 20% of the viewport height as breathing room around the
+      // centered cluster: 10% above and 10% below.
+      const heightScale = (stage.clientHeight * verticalContentRatio) / compositionHeight;
+      const scale = Math.max(0.1, Math.min(1, widthScale, heightScale));
+      const mobileLayoutScale = Math.min(1, stage.clientWidth / 390);
       stage.style.setProperty("--composition-scale", String(scale));
+      stage.style.setProperty("--mobile-layout-scale", String(mobileLayoutScale));
+      stage.style.setProperty("--mobile-layout-height", `${844 * mobileLayoutScale}px`);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(stage);
@@ -265,6 +277,11 @@ export function ThirdVersion() {
         <Link href="/third-version/" onMouseEnter={() => setActiveShape(null)} onFocus={() => setActiveShape(null)}>MORA</Link>
       </header>
       <div className="third-composition">
+        <Link
+          className="third-mobile-logo"
+          href="/third-version/"
+          onFocus={() => setActiveShape(null)}
+        >MORA</Link>
         {shapes.map((shape) => {
           const shapeColor = activeShape && activeShape !== shape.name && !colors.hoverColors
             ? colors.unfocused
