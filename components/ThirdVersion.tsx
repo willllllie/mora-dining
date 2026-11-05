@@ -20,6 +20,7 @@ type Shape = {
   title: string;
   hoverTitle?: string;
   href: string;
+  openInNewTab?: boolean;
   width: number;
   height: number;
   rotation: number;
@@ -29,18 +30,10 @@ type Shape = {
 const shapes: Shape[] = [
   { name: "jelly", slug: "contact", title: "Contact", href: "/contact/", width: 348.887, height: 350.694, rotation: -5.86 },
   { name: "chair", slug: "supper", title: "Supper Supper Supper", hoverTitle: "Supper\nSupper\nSupper", href: "/supper/", width: 408.706, height: 492.633, rotation: 23.19 },
-  { name: "jug", slug: "sample-menus", title: "Sample Menus", hoverTitle: "Sample\nMenus", href: "/sample-menus/", width: 261.221, height: 344.09, rotation: 173.08, flipY: true },
+  { name: "jug", slug: "sample-menus", title: "Sample Menus", hoverTitle: "Sample\nMenus", href: "/menus/mora-sample-menu.pdf", openInNewTab: true, width: 261.221, height: 344.09, rotation: 173.08, flipY: true },
   { name: "cup", slug: "about", title: "About us", href: "/about/", width: 169.391, height: 339.827, rotation: 16.84 },
   { name: "table", slug: "how-we-work", title: "Offerings", href: "/how-we-work/", width: 553, height: 738, rotation: 0 },
 ];
-
-const panelShapes: Record<SectionSlug, ShapeName> = {
-  about: "cup",
-  "how-we-work": "table",
-  "sample-menus": "jug",
-  supper: "chair",
-  contact: "jelly",
-};
 
 function SectionCopy({ slug }: { slug: SectionSlug }) {
   if (slug === "about") return <>
@@ -95,13 +88,6 @@ const dialConfig = {
     hoverTextureOpacity: [46, 0, 100, 1],
     hoverTypeSize: [50, 24, 96, 1],
   },
-  panels: {
-    about: { background: "#72A0CC", text: "#F5F1F0", shape: "#96BEE3" },
-    offerings: { background: "#92522F", text: "#E5F0A4", shape: "#B06841" },
-    sampleMenus: { background: "#351D19", text: "#F5F1F0", shape: "#96BEE3" },
-    supper: { background: "#7A7357", text: "#F4CCD5", shape: "#569852" },
-    contact: { background: "#D0999A", text: "#500067", shape: "#F3C6DD", cherry: "#F26A47" },
-  },
   intro: {
     duration: [0.28, 0.2, 1.5, 0.01],
     stagger: [0.05, 0, 0.5, 0.01],
@@ -122,7 +108,6 @@ export function ThirdVersion() {
   const clippedTextRef = useRef<HTMLSpanElement>(null);
   const [activeShape, setActiveShape] = useState<ShapeName | null>(null);
   const [visibleSlug, setVisibleSlug] = useState<SectionSlug | null>(routeSlug);
-  const [panelClosing, setPanelClosing] = useState(false);
   const lastSlugRef = useRef<SectionSlug | null>(routeSlug);
   const [replay, setReplay] = useState(0);
   const dial = useDialKit("Mora Third Version", dialConfig, {
@@ -142,23 +127,21 @@ export function ThirdVersion() {
       lastSlugRef.current = routeSlug;
       const frame = requestAnimationFrame(() => {
         setVisibleSlug(routeSlug);
-        setPanelClosing(false);
         setActiveShape(null);
       });
       return () => cancelAnimationFrame(frame);
     }
     if (!visibleSlug) return;
-    const frame = requestAnimationFrame(() => setPanelClosing(true));
-    const timeout = window.setTimeout(() => {
+    const frame = requestAnimationFrame(() => {
       setVisibleSlug(null);
       const shape = shapes.find((item) => item.slug === lastSlugRef.current);
       if (shape) stageRef.current?.querySelector<HTMLElement>(`.third-shape--${shape.name}`)?.focus();
-    }, window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 380);
-    return () => { cancelAnimationFrame(frame); clearTimeout(timeout); };
+    });
+    return () => cancelAnimationFrame(frame);
   }, [routeSlug, visibleSlug]);
 
   useEffect(() => {
-    if (!visibleSlug || panelClosing) return;
+    if (!visibleSlug) return;
     const focus = window.setTimeout(() => panelRef.current?.focus(), 30);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -175,7 +158,7 @@ export function ThirdVersion() {
     };
     document.addEventListener("keydown", onKeyDown);
     return () => { clearTimeout(focus); document.removeEventListener("keydown", onKeyDown); };
-  }, [visibleSlug, panelClosing, router]);
+  }, [visibleSlug, router]);
 
   useEffect(() => {
     document.body.style.overflow = visibleSlug ? "hidden" : "";
@@ -274,13 +257,9 @@ export function ThirdVersion() {
     "--third-hover-type-size": `${colors.hoverTypeSize}px`,
   } as ShapeStyle;
   const selected = shapes.find((shape) => shape.name === activeShape);
-  const panelTheme = visibleSlug ? dial.panels[visibleSlug === "how-we-work" ? "offerings" : visibleSlug === "sample-menus" ? "sampleMenus" : visibleSlug] : null;
-  const panelStyle = panelTheme ? {
-    "--third-panel-background": panelTheme.background,
-    "--third-panel-text": panelTheme.text,
-    "--third-panel-shape": panelTheme.shape,
-    "--third-panel-cherry": dial.panels.contact.cherry,
-    "--third-panel-close": visibleSlug === "contact" ? panelTheme.text : panelTheme.background,
+  const panelStyle = visibleSlug ? {
+    "--third-panel-background": "#EEEEEE",
+    "--third-panel-text": "#0E086E",
   } as ShapeStyle : undefined;
 
   return (
@@ -303,6 +282,8 @@ export function ThirdVersion() {
             key={shape.name}
             className={`third-shape third-shape--${shape.name}`}
             href={shape.href}
+            target={shape.openInNewTab ? "_blank" : undefined}
+            rel={shape.openInNewTab ? "noopener noreferrer" : undefined}
             aria-label={shape.title}
             data-selected={activeShape === shape.name}
             onPointerEnter={(event) => {
@@ -357,7 +338,7 @@ export function ThirdVersion() {
       >
         <span ref={clippedTextRef} className="third-pointer-label-ink">{selected?.hoverTitle ?? selected?.title ?? ""}</span>
       </span>
-      {visibleSlug && <div className={`third-overlay${panelClosing ? " is-closing" : ""}`}>
+      {visibleSlug && <div className="third-overlay">
         <Link className="third-overlay__backdrop" href="/" aria-label="Close section" />
         <aside ref={panelRef} className="third-panel" data-slug={visibleSlug} style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="third-panel-title" tabIndex={-1}>
           <div className="third-panel__frame">
@@ -373,18 +354,6 @@ export function ThirdVersion() {
               height={342}
               priority
             />}
-            <span
-              className={`third-panel__shape third-panel__shape--${panelShapes[visibleSlug]}`}
-              style={{ "--third-panel-shape-mask": `url(/third-shapes/${panelShapes[visibleSlug]}.svg)` } as ShapeStyle}
-              aria-hidden="true"
-            >
-              <span className="third-panel__shape-color" />
-              <span className="third-panel__shape-texture" />
-              {visibleSlug === "contact" && <>
-                <span className="third-panel__shape-cherry" />
-                <span className="third-panel__shape-cherry-texture" />
-              </>}
-            </span>
             <div className="third-panel__copy"><SectionCopy slug={visibleSlug} /></div>
           </div>
           <Link className="third-panel__close" href="/" aria-label="Back to home">
