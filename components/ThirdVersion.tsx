@@ -4,6 +4,7 @@ import { DialRoot, useDialKit } from "dialkit";
 import type { DialConfig } from "dialkit";
 import "dialkit/styles.css";
 import gsap from "gsap";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
@@ -52,11 +53,23 @@ function SectionCopy({ slug }: { slug: SectionSlug }) {
   </>;
   if (slug === "supper") return <>
     <p>SUPPER SUPPER SUPPER is our recurring supper club. It’s our favorite way to bring together a group of people for what we think is a perfect evening. Held in an outdoor/indoor courtyard of a converted clock factory in Camberwell, it begins with a welcome cocktail and mingling before switching to a family style three course meal. We’re lucky to have guests that come back each time – if you’d like to be notified by email of the next event, sign up below.</p>
-    <p>Get notified</p>
   </>;
-  if (slug === "contact") return <p>Email address coming soon.</p>;
+  if (slug === "contact") return <p>
+    You can email us at<br />
+    <a href="mailto:hello@moradining.com">hello@moradining.com</a>
+    <br /><br />
+    or follow us on <a href="https://www.instagram.com/moradining/">instagram</a>
+  </p>;
   return <p>Sample menus coming soon.</p>;
 }
+
+const mobilePanelTitles: Record<SectionSlug, string> = {
+  about: "About us",
+  "how-we-work": "What we do",
+  "sample-menus": "Sample menus",
+  supper: "Supper\nSupper\nSupper",
+  contact: "Contact us",
+};
 
 function inverseHex(color: string) {
   const value = color.replace("#", "");
@@ -186,7 +199,6 @@ export function ThirdVersion() {
       const mobileLayoutScale = Math.min(1, stage.clientWidth / 393);
       stage.style.setProperty("--composition-scale", String(scale));
       stage.style.setProperty("--mobile-layout-scale", String(mobileLayoutScale));
-      stage.style.setProperty("--mobile-layout-height", `${852 * mobileLayoutScale}px`);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(stage);
@@ -349,7 +361,18 @@ export function ThirdVersion() {
         <Link className="third-overlay__backdrop" href="/" aria-label="Close section" />
         <aside ref={panelRef} className="third-panel" data-slug={visibleSlug} style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="third-panel-title" tabIndex={-1}>
           <div className="third-panel__frame">
-            <h1 id="third-panel-title">{shapes.find((shape) => shape.slug === visibleSlug)?.title}</h1>
+            <h1 id="third-panel-title">
+              <span className="third-panel__title-desktop">{shapes.find((shape) => shape.slug === visibleSlug)?.title}</span>
+              <span className="third-panel__title-mobile">{mobilePanelTitles[visibleSlug]}</span>
+            </h1>
+            {(visibleSlug === "about" || visibleSlug === "supper") && <Image
+              className="third-panel__portrait"
+              src="/mobile-panels/grace-and-sophie.png"
+              alt="Grace and Sophie"
+              width={329}
+              height={342}
+              priority
+            />}
             <span
               className={`third-panel__shape third-panel__shape--${panelShapes[visibleSlug]}`}
               style={{ "--third-panel-shape-mask": `url(/third-shapes/${panelShapes[visibleSlug]}.svg)` } as ShapeStyle}
@@ -364,7 +387,10 @@ export function ThirdVersion() {
             </span>
             <div className="third-panel__copy"><SectionCopy slug={visibleSlug} /></div>
           </div>
-          <Link className="third-panel__close" href="/">Close</Link>
+          <Link className="third-panel__close" href="/" aria-label="Back to home">
+            <span className="third-panel__close-label">Close</span>
+            <Image className="third-panel__back-arrow" src="/mobile-panels/back-arrow.svg" alt="" width={40} height={40} />
+          </Link>
         </aside>
       </div>}
       <DialRoot position="top-right" theme="dark" defaultOpen={false} />
