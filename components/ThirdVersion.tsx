@@ -7,7 +7,7 @@ import gsap from "gsap";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { isSectionSlug, type SectionSlug } from "@/lib/sections";
 import "@/app/third-version/third-version.css";
@@ -105,6 +105,7 @@ export function ThirdVersion() {
   const panelRef = useRef<HTMLElement>(null);
   const cursorLabelRef = useRef<HTMLSpanElement>(null);
   const clippedLabelRef = useRef<HTMLSpanElement>(null);
+  const mobileTransitionRef = useRef(false);
   const clippedTextRef = useRef<HTMLSpanElement>(null);
   const [activeShape, setActiveShape] = useState<ShapeName | null>(null);
   const [visibleSlug, setVisibleSlug] = useState<SectionSlug | null>(routeSlug);
@@ -126,6 +127,7 @@ export function ThirdVersion() {
     if (routeSlug) {
       lastSlugRef.current = routeSlug;
       const frame = requestAnimationFrame(() => {
+        mobileTransitionRef.current = false;
         setVisibleSlug(routeSlug);
         setActiveShape(null);
       });
@@ -134,6 +136,11 @@ export function ThirdVersion() {
     if (!visibleSlug) return;
     const frame = requestAnimationFrame(() => {
       setVisibleSlug(null);
+      mobileTransitionRef.current = false;
+      const pops = stageRef.current?.querySelectorAll<HTMLElement>(".third-shape__pop");
+      const mobileLogo = stageRef.current?.querySelector<HTMLElement>(".third-mobile-logo");
+      if (pops) gsap.set(pops, { scale: 1, opacity: 1 });
+      if (mobileLogo) gsap.set(mobileLogo, { clearProps: "opacity,scale" });
       const shape = shapes.find((item) => item.slug === lastSlugRef.current);
       if (shape) stageRef.current?.querySelector<HTMLElement>(`.third-shape--${shape.name}`)?.focus();
     });
@@ -245,6 +252,38 @@ export function ThirdVersion() {
     ink.style.transform = `translate(-50%, -50%) rotate(${-shape.rotation}deg)${shape.flipY ? " scaleY(-1)" : ""}`;
   };
 
+  const openShape = (event: ReactMouseEvent<HTMLAnchorElement>, shape: Shape) => {
+    if (shape.openInNewTab || !window.matchMedia("(max-width: 767px)").matches) return;
+    event.preventDefault();
+    if (mobileTransitionRef.current) return;
+
+    mobileTransitionRef.current = true;
+    setActiveShape(null);
+    const stage = stageRef.current;
+    if (!stage || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      router.push(shape.href, { scroll: false });
+      return;
+    }
+
+    const pops = Array.from(stage.querySelectorAll<HTMLElement>(".third-shape__pop"));
+    const mobileLogo = stage.querySelector<HTMLElement>(".third-mobile-logo");
+    const clickedIndex = Math.max(0, shapes.findIndex((item) => item.name === shape.name));
+    const timeline = gsap.timeline({
+      onComplete: () => router.push(shape.href, { scroll: false }),
+    });
+
+    timeline.to(pops, {
+      scale: 0.42,
+      opacity: 0,
+      duration: 0.24,
+      stagger: { each: 0.035, from: clickedIndex },
+      ease: "back.in(2)",
+    });
+    if (mobileLogo) {
+      timeline.to(mobileLogo, { scale: 0.9, opacity: 0, duration: 0.18, ease: "power2.in" }, 0.04);
+    }
+  };
+
   const colors = dial.appearance;
   const stageStyle = {
     "--third-background": colors.background,
@@ -286,6 +325,7 @@ export function ThirdVersion() {
             rel={shape.openInNewTab ? "noopener noreferrer" : undefined}
             aria-label={shape.title}
             data-selected={activeShape === shape.name}
+            onClick={(event) => openShape(event, shape)}
             onPointerEnter={(event) => {
               if (visibleSlug) return;
               positionLabel(shape, event.currentTarget, event.clientX, event.clientY);
@@ -346,7 +386,7 @@ export function ThirdVersion() {
               <span className="third-panel__title-desktop">{shapes.find((shape) => shape.slug === visibleSlug)?.title}</span>
               <span className="third-panel__title-mobile">{mobilePanelTitles[visibleSlug]}</span>
             </h1>
-            {(visibleSlug === "about" || visibleSlug === "supper") && <Image
+            {visibleSlug === "about" && <Image
               className="third-panel__portrait"
               src="/mobile-panels/grace-and-sophie.png"
               alt="Grace and Sophie"
@@ -358,7 +398,7 @@ export function ThirdVersion() {
           </div>
           <Link className="third-panel__close" href="/" aria-label="Back to home">
             <span className="third-panel__close-label">Close</span>
-            <Image className="third-panel__back-arrow" src="/mobile-panels/back-arrow.svg" alt="" width={40} height={40} />
+            <Image className="third-panel__close-icon" src="/mobile-panels/close.svg" alt="" width={32} height={32} />
           </Link>
         </aside>
       </div>}
