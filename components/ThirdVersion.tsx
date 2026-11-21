@@ -122,6 +122,7 @@ export function ThirdVersion() {
       }
     },
   });
+  const colors = dial.appearance;
 
   useEffect(() => {
     if (routeSlug) {
@@ -168,14 +169,38 @@ export function ThirdVersion() {
   }, [visibleSlug, router]);
 
   useEffect(() => {
+    const pageColor = visibleSlug ? "#1b1818" : colors.background;
+    const root = document.documentElement;
+    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    const previousRootColor = root.style.backgroundColor;
+    const previousBodyColor = document.body.style.backgroundColor;
+    const previousColorScheme = root.style.colorScheme;
+    const previousThemeColor = theme?.content;
+
     document.body.style.overflow = visibleSlug ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [visibleSlug]);
+    document.body.style.backgroundColor = pageColor;
+    root.style.backgroundColor = pageColor;
+    root.style.colorScheme = visibleSlug ? "dark" : "light";
+    theme?.setAttribute("content", pageColor);
+
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.backgroundColor = previousBodyColor;
+      root.style.backgroundColor = previousRootColor;
+      root.style.colorScheme = previousColorScheme;
+      if (theme && previousThemeColor) theme.content = previousThemeColor;
+    };
+  }, [colors.background, visibleSlug]);
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
     const resize = () => {
+      const visualViewport = window.visualViewport;
+      const viewportWidth = visualViewport?.width ?? stage.clientWidth;
+      const viewportHeight = visualViewport?.height ?? stage.clientHeight;
+      const viewportOffsetX = visualViewport?.offsetLeft ?? 0;
+      const viewportOffsetY = visualViewport?.offsetTop ?? 0;
       const desktopSideGutter = 24;
       const compositionWidth = 1455.917;
       const compositionHeight = 903;
@@ -186,14 +211,38 @@ export function ThirdVersion() {
       // centered cluster: 10% above and 10% below.
       const heightScale = (stage.clientHeight * verticalContentRatio) / compositionHeight;
       const scale = Math.max(0.1, Math.min(1, widthScale, heightScale));
-      const mobileLayoutScale = Math.min(1, stage.clientWidth / 393);
+      // The mobile artboard contains deliberate empty space, so fit the
+      // visible 580px-tall cluster rather than shrinking against all 852px.
+      // visualViewport tracks Safari and Chrome as their browser chrome opens
+      // and closes, keeping the composition optically centred in what is
+      // actually visible to the visitor.
+      const mobileWidthScale = Math.max(0, viewportWidth - 24) / 393;
+      const mobileHeightScale = Math.max(0, viewportHeight - 48) / 580;
+      const mobileLayoutScale = Math.max(0.55, Math.min(1, mobileWidthScale, mobileHeightScale));
+      const mobileTitleTop = Math.max(40, Math.min(101, viewportHeight * 0.1185));
+      const mobilePortraitTop = Math.max(84, Math.min(141, viewportHeight * 0.1655));
+      const mobileCopyTop = Math.max(280, Math.min(454, viewportHeight * 0.533));
       stage.style.setProperty("--composition-scale", String(scale));
       stage.style.setProperty("--mobile-layout-scale", String(mobileLayoutScale));
+      stage.style.setProperty("--mobile-center-x", `${viewportOffsetX + viewportWidth / 2}px`);
+      stage.style.setProperty("--mobile-center-y", `${viewportOffsetY + viewportHeight / 2}px`);
+      stage.style.setProperty("--mobile-viewport-height", `${viewportHeight}px`);
+      stage.style.setProperty("--mobile-panel-title-top", `${mobileTitleTop}px`);
+      stage.style.setProperty("--mobile-panel-portrait-top", `${mobilePortraitTop}px`);
+      stage.style.setProperty("--mobile-panel-copy-top", `${mobileCopyTop}px`);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(stage);
+    window.visualViewport?.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("scroll", resize);
+    window.addEventListener("orientationchange", resize);
     resize();
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      window.visualViewport?.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("scroll", resize);
+      window.removeEventListener("orientationchange", resize);
+    };
   }, []);
 
   const { duration, stagger, overshoot } = dial.intro;
@@ -284,7 +333,6 @@ export function ThirdVersion() {
     }
   };
 
-  const colors = dial.appearance;
   const stageStyle = {
     "--third-background": colors.background,
     "--third-logo": colors.logo,

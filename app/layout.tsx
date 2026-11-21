@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import { ExperienceRouter } from "@/components/ExperienceRouter";
@@ -26,6 +26,13 @@ export const metadata: Metadata = {
     template: "%s — Mora Dining",
   },
   description: "Playful food, generous tables, and memorable gatherings by Mora Dining.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#f1ede9",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
