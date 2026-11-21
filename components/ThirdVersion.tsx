@@ -213,7 +213,6 @@ export function ThirdVersion() {
   }, [visibleSlug, router]);
 
   useLayoutEffect(() => {
-    const pageColor = visibleSlug ? "#1b1818" : colors.background;
     const root = document.documentElement;
     const previousRootColor = root.style.backgroundColor;
     const previousBodyColor = document.body.style.backgroundColor;
@@ -237,9 +236,27 @@ export function ThirdVersion() {
       document.head.append(runtimeColorScheme);
     }
 
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.backgroundColor = previousBodyColor;
+      root.style.backgroundColor = previousRootColor;
+      root.style.colorScheme = previousColorScheme;
+      if (createdRuntimeTheme) runtimeTheme?.remove();
+      if (createdRuntimeColorScheme) runtimeColorScheme?.remove();
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    // Route state changes before the animated panel state. Include both so
+    // Safari receives the dark browser-chrome color in the same frame as the
+    // URL change, rather than briefly restoring the light homepage theme.
+    const panelIsOpen = routeSlug !== null || visibleSlug !== null;
+    const pageColor = panelIsOpen ? "#1b1818" : colors.background;
+    const colorScheme = panelIsOpen ? "dark" : "light";
+    const root = document.documentElement;
+
     const applyBrowserTheme = () => {
-      const colorScheme = visibleSlug ? "dark" : "light";
-      document.body.style.overflow = visibleSlug ? "hidden" : "";
+      document.body.style.overflow = panelIsOpen ? "hidden" : "";
       document.body.style.backgroundColor = pageColor;
       root.style.backgroundColor = pageColor;
       root.style.colorScheme = colorScheme;
@@ -270,14 +287,8 @@ export function ThirdVersion() {
       headObserver.disconnect();
       window.removeEventListener("pageshow", applyBrowserTheme);
       window.removeEventListener("popstate", applyBrowserTheme);
-      document.body.style.overflow = "";
-      document.body.style.backgroundColor = previousBodyColor;
-      root.style.backgroundColor = previousRootColor;
-      root.style.colorScheme = previousColorScheme;
-      if (createdRuntimeTheme) runtimeTheme?.remove();
-      if (createdRuntimeColorScheme) runtimeColorScheme?.remove();
     };
-  }, [colors.background, visibleSlug]);
+  }, [colors.background, routeSlug, visibleSlug]);
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
@@ -535,8 +546,10 @@ export function ThirdVersion() {
     "--third-panel-text": "#0E086E",
   } as ShapeStyle : undefined;
 
+  const panelIsOpen = routeSlug !== null || visibleSlug !== null;
+
   return (
-    <main className="third-version" ref={stageRef} style={stageStyle} data-active={activeShape !== null} data-images-ready={hoverImagesReady ? "true" : "false"} data-hover-colors={colors.hoverColors ? "on" : "off"} data-panel-open={visibleSlug !== null}>
+    <main className="third-version" ref={stageRef} style={stageStyle} data-active={activeShape !== null} data-images-ready={hoverImagesReady ? "true" : "false"} data-hover-colors={colors.hoverColors ? "on" : "off"} data-panel-open={panelIsOpen}>
       <header className="third-header">
         <Link href="/" onMouseEnter={() => setActiveShape(null)} onFocus={() => setActiveShape(null)}>MORA</Link>
       </header>

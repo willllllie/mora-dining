@@ -239,6 +239,10 @@
   filter: blur(23.5px);
 }
 
+.third-version[data-panel-open="true"] {
+  background: #1b1818;
+}
+
 .third-overlay__backdrop {
   position: absolute;
   inset: 0;
@@ -343,8 +347,8 @@
   .third-version {
     position: fixed;
     inset: 0;
-    width: 100vw;
-    height: var(--mobile-viewport-height, 100dvh);
+    width: auto;
+    height: auto;
     min-height: 0;
     overflow: hidden;
     overscroll-behavior: none;
@@ -442,7 +446,7 @@
     position: fixed;
     inset: 0;
     width: 100%;
-    height: var(--mobile-viewport-height, 100dvh);
+    height: auto;
     overflow-y: auto;
     overscroll-behavior: contain;
     background: #1b1818;
@@ -450,7 +454,10 @@
     transform: none;
     -webkit-overflow-scrolling: touch;
   }
-  .third-overlay { overflow: hidden; }
+  .third-overlay {
+    overflow: hidden;
+    background: #1b1818;
+  }
   .third-overlay__backdrop { display: none; }
   .third-panel__frame {
     height: auto;
