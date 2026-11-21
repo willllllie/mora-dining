@@ -14,11 +14,11 @@ import { isSectionSlug, type SectionSlug } from "@/lib/sections";
 type ShapeStyle = CSSProperties & Record<`--${string}`, string>;
 
 const pieces = [
-  { name: "Chair", title: "About us", file: "chair.svg", photo: "chair.png", href: "/about/", width: 266, height: 329 },
-  { name: "Cup", title: "Offerings", file: "cup.svg", photo: "cup.png", href: "/how-we-work/", width: 177, height: 358 },
-  { name: "Jug", title: "Sample menus", file: "jug.svg", photo: "jug.png", href: "/sample-menus/", width: 209, height: 275 },
-  { name: "Table", title: "Supper Supper Supper", file: "table.svg", photo: "table.png", href: "/supper/", width: 300, height: 311 },
-  { name: "Jelly", title: "Contact", file: "jelly.svg", photo: "jelly.png", href: "/contact/", width: 273, height: 269 },
+  { name: "Chair", title: "About us", file: "chair.svg", photo: "chair.webp", href: "/about/", width: 266, height: 329 },
+  { name: "Cup", title: "Offerings", file: "cup.svg", photo: "cup.webp", href: "/how-we-work/", width: 177, height: 358 },
+  { name: "Jug", title: "Sample menus", file: "jug.svg", photo: "jug.webp", href: "/sample-menus/", width: 209, height: 275 },
+  { name: "Table", title: "Supper Supper Supper", file: "table.svg", photo: "table.webp", href: "/supper/", width: 300, height: 311 },
+  { name: "Jelly", title: "Contact", file: "jelly.svg", photo: "jelly.webp", href: "/contact/", width: 273, height: 269 },
 ] as const;
 
 const artWidth = pieces.reduce((total, piece) => total + piece.width, 0);

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/mora-link-preview.png",
+        url: "/mora-link-preview-v2.png",
         width: 2276,
         height: 1416,
         alt: "Mora Dining’s five illustrated table objects",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Mora Dining",
     description: "Playful food, generous tables, and memorable gatherings by Mora Dining.",
-    images: ["/mora-link-preview.png"],
+    images: ["/mora-link-preview-v2.png"],
   },
 };
 

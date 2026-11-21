@@ -4,7 +4,6 @@ import { DialRoot, useDialKit } from "dialkit";
 import type { DialConfig } from "dialkit";
 import "dialkit/styles.css";
 import gsap from "gsap";
-import { CustomEase } from "gsap/CustomEase";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -28,9 +27,6 @@ type Shape = {
   rotation: number;
   flipY?: boolean;
 };
-
-gsap.registerPlugin(CustomEase);
-const moraMotionEase = CustomEase.create("mora-motion", "0.2,0.8,0.1,1");
 
 const shapes: Shape[] = [
   { name: "jelly", slug: "contact", title: "Contact", href: "/contact/", width: 348.887, height: 350.694, rotation: -5.86 },
@@ -94,7 +90,7 @@ const dialConfig = {
     hoverTypeSize: [50, 24, 96, 1],
   },
   intro: {
-    duration: [0.4, 0.2, 1.5, 0.01],
+    duration: [0.28, 0.2, 1.5, 0.01],
     stagger: [0.05, 0, 0.5, 0.01],
     overshoot: [0.3, 0, 5, 0.1],
     replay: { type: "action", label: "Replay intro" },
@@ -117,12 +113,13 @@ export function ThirdVersion() {
   const clippedTextRef = useRef<HTMLSpanElement>(null);
   const [activeShape, setActiveShape] = useState<ShapeName | null>(null);
   const [pressedShape, setPressedShape] = useState<ShapeName | null>(null);
+  const [hoverImagesReady, setHoverImagesReady] = useState(false);
   const [visibleSlug, setVisibleSlug] = useState<SectionSlug | null>(routeSlug);
   const lastSlugRef = useRef<SectionSlug | null>(routeSlug);
   const [replay, setReplay] = useState(0);
   const dial = useDialKit("Mora Third Version", dialConfig, {
     // A fresh key makes the revised palette the default for existing previews too.
-    id: "mora-third-version-v5",
+    id: "mora-third-version-v6",
     persist: true,
     onAction: (action) => {
       if (action === "intro.replay") {
@@ -132,6 +129,24 @@ export function ThirdVersion() {
     },
   });
   const colors = dial.appearance;
+
+  useEffect(() => {
+    let cancelled = false;
+    const preload = shapes.map((shape) => new Promise<void>((resolve) => {
+      const image = new window.Image();
+      const finish = () => image.decode().catch(() => undefined).finally(resolve);
+      image.decoding = "async";
+      image.onload = finish;
+      image.onerror = () => resolve();
+      image.src = `/landing-hover/${shape.name}.webp`;
+      if (image.complete) finish();
+    }));
+
+    Promise.all(preload).then(() => {
+      if (!cancelled) setHoverImagesReady(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (routeSlug) {
@@ -149,8 +164,21 @@ export function ThirdVersion() {
       mobileTransitionRef.current = false;
       const pops = stageRef.current?.querySelectorAll<HTMLElement>(".third-shape__pop");
       const mobileLogo = stageRef.current?.querySelector<HTMLElement>(".third-mobile-logo");
-      if (pops) gsap.set(pops, { scale: 1, opacity: 1 });
-      if (mobileLogo) gsap.set(mobileLogo, { clearProps: "opacity,scale" });
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (pops) {
+        if (reduceMotion) gsap.set(pops, { scale: 1, opacity: 1 });
+        else gsap.fromTo(pops,
+          { scale: 0.72, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.32, stagger: 0.025, ease: "back.out(1.8)" },
+        );
+      }
+      if (mobileLogo) {
+        if (reduceMotion) gsap.set(mobileLogo, { clearProps: "opacity,scale" });
+        else gsap.fromTo(mobileLogo,
+          { scale: 0.82, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.28, ease: "back.out(1.7)", clearProps: "scale" },
+        );
+      }
       const shape = shapes.find((item) => item.slug === lastSlugRef.current);
       const shapeElement = shape
         ? stageRef.current?.querySelector<HTMLElement>(`.third-shape--${shape.name}`)
@@ -319,10 +347,10 @@ export function ThirdVersion() {
       gsap.fromTo(pops,
         { scale: 0.48, opacity: 0 },
         {
-          keyframes: [
-            { scale: 1 + overshoot * 0.02, opacity: 1, duration: duration * 0.7, ease: moraMotionEase },
-            { scale: 1, duration: duration * 0.3, ease: moraMotionEase },
-          ],
+          scale: 1,
+          opacity: 1,
+          duration,
+          ease: `back.out(${overshoot})`,
           stagger,
           delay: 0.12,
         },
@@ -390,13 +418,31 @@ export function ThirdVersion() {
     timeline.to(pops, {
       scale: 0.42,
       opacity: 0,
-      duration: 0.4,
-      stagger: { each: 0.035, from: clickedIndex },
-      ease: moraMotionEase,
+      duration: 0.24,
+      stagger: { each: 0.025, from: clickedIndex },
+      ease: "back.in(2)",
     });
     if (mobileLogo) {
-      timeline.to(mobileLogo, { scale: 0.9, opacity: 0, duration: 0.4, ease: moraMotionEase }, 0.04);
+      timeline.to(mobileLogo, { scale: 0.9, opacity: 0, duration: 0.18, ease: "power2.in" }, 0.02);
     }
+  };
+
+  const closePanel = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    if (!visibleSlug || !window.matchMedia("(max-width: 767px)").matches) return;
+    event.preventDefault();
+    if (mobileTransitionRef.current) return;
+    mobileTransitionRef.current = true;
+    const overlay = panelRef.current?.closest<HTMLElement>(".third-overlay");
+    if (!overlay || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      router.push("/", { scroll: false });
+      return;
+    }
+    gsap.to(overlay, {
+      opacity: 0,
+      duration: 0.18,
+      ease: "power2.in",
+      onComplete: () => router.push("/", { scroll: false }),
+    });
   };
 
   const clearTouchHold = () => {
@@ -490,7 +536,7 @@ export function ThirdVersion() {
   } as ShapeStyle : undefined;
 
   return (
-    <main className="third-version" ref={stageRef} style={stageStyle} data-active={activeShape !== null} data-hover-colors={colors.hoverColors ? "on" : "off"} data-panel-open={visibleSlug !== null}>
+    <main className="third-version" ref={stageRef} style={stageStyle} data-active={activeShape !== null} data-images-ready={hoverImagesReady ? "true" : "false"} data-hover-colors={colors.hoverColors ? "on" : "off"} data-panel-open={visibleSlug !== null}>
       <header className="third-header">
         <Link href="/" onMouseEnter={() => setActiveShape(null)} onFocus={() => setActiveShape(null)}>MORA</Link>
       </header>
@@ -555,7 +601,7 @@ export function ThirdVersion() {
             onBlur={() => setActiveShape(null)}
             style={{
               "--shape-mask": `url(/third-shapes/${shape.name}.svg)`,
-              "--shape-photo": `url(/landing-hover/${shape.name}.png)`,
+              "--shape-photo": `url(/landing-hover/${shape.name}.webp)`,
               "--shape-color": shapeColor,
               "--shape-width": `${shape.width}px`,
               "--shape-height": `${shape.height}px`,
@@ -592,7 +638,7 @@ export function ThirdVersion() {
         <span ref={clippedTextRef} className="third-pointer-label-ink">{selected?.hoverTitle ?? selected?.title ?? ""}</span>
       </span>
       {visibleSlug && <div className="third-overlay">
-        <Link className="third-overlay__backdrop" href="/" aria-label="Close section" />
+        <Link className="third-overlay__backdrop" href="/" aria-label="Close section" onClick={closePanel} />
         <aside ref={panelRef} className="third-panel" data-slug={visibleSlug} style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="third-panel-title" tabIndex={-1}>
           <div className="third-panel__frame">
             <h1 id="third-panel-title">
@@ -609,7 +655,7 @@ export function ThirdVersion() {
             />}
             <div className="third-panel__copy"><SectionCopy slug={visibleSlug} /></div>
           </div>
-          <Link className="third-panel__close" href="/" aria-label="Back to home">
+          <Link className="third-panel__close" href="/" aria-label="Back to home" onClick={closePanel}>
             <span className="third-panel__close-label">Close</span>
             <Image className="third-panel__close-icon" src="/mobile-panels/close.svg" alt="" width={32} height={32} />
           </Link>
