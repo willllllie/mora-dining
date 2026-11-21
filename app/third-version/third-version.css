@@ -53,11 +53,7 @@
 .third-shape {
   position: absolute;
   display: block;
-  outline-offset: 8px;
-}
-
-.third-shape:focus-visible {
-  outline: 4px solid var(--third-logo);
+  outline: none;
 }
 
 .third-shape--jelly { left: 0; top: 439px; width: 382.96px; height: 384.457px; }
@@ -349,12 +345,19 @@
     top: 400px;
     left: 211px;
     display: block;
+    width: 190px;
     color: var(--third-logo);
     font-size: 40px;
     font-weight: 700;
     line-height: 1;
+    text-align: center;
     text-decoration: none;
     transform: translate(-50%, -50%);
+    transition: font-size 140ms ease, transform 140ms ease;
+  }
+  .third-mobile-logo[data-previewing="true"] {
+    font-size: 30px;
+    pointer-events: none;
   }
   .third-mobile-logo:focus-visible {
     outline: 3px solid currentColor;
@@ -364,11 +367,16 @@
   .third-pointer-label-clip { display: none; }
   .third-shape {
     position: absolute;
+    -webkit-touch-callout: none;
+    touch-action: none;
+    user-select: none;
   }
   .third-shape__art {
     scale: none;
     transform: translate(-50%, -50%);
+    transition: scale 120ms ease;
   }
+  .third-shape[data-pressed="true"] .third-shape__art { scale: .94; }
   .third-shape--jug {
     top: 315px;
     left: 14px;

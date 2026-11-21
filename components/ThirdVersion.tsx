@@ -7,7 +7,7 @@ import gsap from "gsap";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { isSectionSlug, type SectionSlug } from "@/lib/sections";
 import "@/app/third-version/third-version.css";
@@ -18,6 +18,7 @@ type Shape = {
   name: ShapeName;
   slug: SectionSlug;
   title: string;
+  mobileTitle?: string;
   hoverTitle?: string;
   href: string;
   openInNewTab?: boolean;
@@ -29,7 +30,7 @@ type Shape = {
 
 const shapes: Shape[] = [
   { name: "jelly", slug: "contact", title: "Contact", href: "/contact/", width: 348.887, height: 350.694, rotation: -5.86 },
-  { name: "chair", slug: "supper", title: "Supper Supper Supper", hoverTitle: "Supper\nSupper\nSupper", href: "/supper/", width: 408.706, height: 492.633, rotation: 23.19 },
+  { name: "chair", slug: "supper", title: "Supper Supper Supper", mobileTitle: "Supper", hoverTitle: "Supper\nSupper\nSupper", href: "/supper/", width: 408.706, height: 492.633, rotation: 23.19 },
   { name: "jug", slug: "sample-menus", title: "Sample Menus", hoverTitle: "Sample\nMenus", href: "/menus/mora-sample-menu.pdf", openInNewTab: true, width: 261.221, height: 344.09, rotation: 173.08, flipY: true },
   { name: "cup", slug: "about", title: "About us", href: "/about/", width: 169.391, height: 339.827, rotation: 16.84 },
   { name: "table", slug: "how-we-work", title: "Offerings", href: "/how-we-work/", width: 553, height: 738, rotation: 0 },
@@ -106,8 +107,12 @@ export function ThirdVersion() {
   const cursorLabelRef = useRef<HTMLSpanElement>(null);
   const clippedLabelRef = useRef<HTMLSpanElement>(null);
   const mobileTransitionRef = useRef(false);
+  const touchExploreRef = useRef(false);
+  const suppressTouchClickRef = useRef(false);
+  const touchHoldTimerRef = useRef<number | null>(null);
   const clippedTextRef = useRef<HTMLSpanElement>(null);
   const [activeShape, setActiveShape] = useState<ShapeName | null>(null);
+  const [pressedShape, setPressedShape] = useState<ShapeName | null>(null);
   const [visibleSlug, setVisibleSlug] = useState<SectionSlug | null>(routeSlug);
   const lastSlugRef = useRef<SectionSlug | null>(routeSlug);
   const [replay, setReplay] = useState(0);
@@ -143,7 +148,14 @@ export function ThirdVersion() {
       if (pops) gsap.set(pops, { scale: 1, opacity: 1 });
       if (mobileLogo) gsap.set(mobileLogo, { clearProps: "opacity,scale" });
       const shape = shapes.find((item) => item.slug === lastSlugRef.current);
-      if (shape) stageRef.current?.querySelector<HTMLElement>(`.third-shape--${shape.name}`)?.focus();
+      const shapeElement = shape
+        ? stageRef.current?.querySelector<HTMLElement>(`.third-shape--${shape.name}`)
+        : null;
+      if (shapeElement && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+        shapeElement.focus({ preventScroll: true });
+      } else if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     });
     return () => cancelAnimationFrame(frame);
   }, [routeSlug, visibleSlug]);
@@ -168,27 +180,70 @@ export function ThirdVersion() {
     return () => { clearTimeout(focus); document.removeEventListener("keydown", onKeyDown); };
   }, [visibleSlug, router]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const pageColor = visibleSlug ? "#1b1818" : colors.background;
     const root = document.documentElement;
-    const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const previousRootColor = root.style.backgroundColor;
     const previousBodyColor = document.body.style.backgroundColor;
     const previousColorScheme = root.style.colorScheme;
-    const previousThemeColor = theme?.content;
+    let runtimeTheme = document.querySelector<HTMLMetaElement>('meta[data-mora-theme="true"]');
+    let runtimeColorScheme = document.querySelector<HTMLMetaElement>('meta[data-mora-color-scheme="true"]');
+    const createdRuntimeTheme = !runtimeTheme;
+    const createdRuntimeColorScheme = !runtimeColorScheme;
 
-    document.body.style.overflow = visibleSlug ? "hidden" : "";
-    document.body.style.backgroundColor = pageColor;
-    root.style.backgroundColor = pageColor;
-    root.style.colorScheme = visibleSlug ? "dark" : "light";
-    theme?.setAttribute("content", pageColor);
+    if (!runtimeTheme) {
+      runtimeTheme = document.createElement("meta");
+      runtimeTheme.name = "theme-color";
+      runtimeTheme.dataset.moraTheme = "true";
+      document.head.append(runtimeTheme);
+    }
+
+    if (!runtimeColorScheme) {
+      runtimeColorScheme = document.createElement("meta");
+      runtimeColorScheme.name = "color-scheme";
+      runtimeColorScheme.dataset.moraColorScheme = "true";
+      document.head.append(runtimeColorScheme);
+    }
+
+    const applyBrowserTheme = () => {
+      const colorScheme = visibleSlug ? "dark" : "light";
+      document.body.style.overflow = visibleSlug ? "hidden" : "";
+      document.body.style.backgroundColor = pageColor;
+      root.style.backgroundColor = pageColor;
+      root.style.colorScheme = colorScheme;
+      document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((theme) => {
+        if (theme.content !== pageColor) theme.content = pageColor;
+      });
+      document.querySelectorAll<HTMLMetaElement>('meta[name="color-scheme"]').forEach((scheme) => {
+        if (scheme.content !== colorScheme) scheme.content = colorScheme;
+      });
+    };
+
+    applyBrowserTheme();
+    const frame = requestAnimationFrame(applyBrowserTheme);
+    const timer = window.setTimeout(applyBrowserTheme, 120);
+    const headObserver = new MutationObserver(applyBrowserTheme);
+    headObserver.observe(document.head, {
+      attributes: true,
+      attributeFilter: ["content"],
+      childList: true,
+      subtree: true,
+    });
+    window.addEventListener("pageshow", applyBrowserTheme);
+    window.addEventListener("popstate", applyBrowserTheme);
 
     return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      headObserver.disconnect();
+      window.removeEventListener("pageshow", applyBrowserTheme);
+      window.removeEventListener("popstate", applyBrowserTheme);
       document.body.style.overflow = "";
       document.body.style.backgroundColor = previousBodyColor;
       root.style.backgroundColor = previousRootColor;
       root.style.colorScheme = previousColorScheme;
-      if (theme && previousThemeColor) theme.content = previousThemeColor;
+      if (createdRuntimeTheme) runtimeTheme?.remove();
+      if (createdRuntimeColorScheme) runtimeColorScheme?.remove();
     };
   }, [colors.background, visibleSlug]);
 
@@ -333,6 +388,79 @@ export function ThirdVersion() {
     }
   };
 
+  const clearTouchHold = () => {
+    if (touchHoldTimerRef.current !== null) {
+      window.clearTimeout(touchHoldTimerRef.current);
+      touchHoldTimerRef.current = null;
+    }
+  };
+
+  const getShapeAtPoint = (x: number, y: number) => {
+    const shapeElement = document.elementFromPoint(x, y)?.closest<HTMLElement>(".third-shape");
+    const shapeName = shapeElement?.dataset.shape as ShapeName | undefined;
+    if (shapeName) return shapes.find((shape) => shape.name === shapeName) ?? null;
+
+    // Keep exploration fluid through the small gaps between silhouettes by
+    // selecting the nearest shape centre when the finger is between elements.
+    return shapes.reduce<{ shape: Shape; distance: number } | null>((nearest, shape) => {
+      const element = stageRef.current?.querySelector<HTMLElement>(`.third-shape--${shape.name}`);
+      if (!element) return nearest;
+      const rect = element.getBoundingClientRect();
+      const distance = Math.hypot(x - (rect.left + rect.width / 2), y - (rect.top + rect.height / 2));
+      return !nearest || distance < nearest.distance ? { shape, distance } : nearest;
+    }, null)?.shape ?? null;
+  };
+
+  const startTouchPreview = (event: ReactPointerEvent<HTMLAnchorElement>, shape: Shape) => {
+    if (event.pointerType !== "touch" || visibleSlug) return;
+    clearTouchHold();
+    touchExploreRef.current = false;
+    suppressTouchClickRef.current = false;
+    setPressedShape(shape.name);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    touchHoldTimerRef.current = window.setTimeout(() => {
+      touchHoldTimerRef.current = null;
+      touchExploreRef.current = true;
+      suppressTouchClickRef.current = true;
+      setPressedShape(null);
+      setActiveShape(shape.name);
+    }, 340);
+  };
+
+  const moveTouchPreview = (event: ReactPointerEvent<HTMLAnchorElement>) => {
+    if (event.pointerType !== "touch" || !touchExploreRef.current) return;
+    event.preventDefault();
+    const shape = getShapeAtPoint(event.clientX, event.clientY);
+    if (shape) setActiveShape(shape.name);
+  };
+
+  const endTouchPreview = (event: ReactPointerEvent<HTMLAnchorElement>) => {
+    if (event.pointerType !== "touch") return;
+    clearTouchHold();
+    setPressedShape(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!touchExploreRef.current) return;
+    event.preventDefault();
+    touchExploreRef.current = false;
+    setActiveShape(null);
+    window.setTimeout(() => { suppressTouchClickRef.current = false; }, 400);
+  };
+
+  const cancelTouchPreview = (event: ReactPointerEvent<HTMLAnchorElement>) => {
+    if (event.pointerType !== "touch") return;
+    clearTouchHold();
+    touchExploreRef.current = false;
+    suppressTouchClickRef.current = false;
+    setPressedShape(null);
+    setActiveShape(null);
+  };
+
+  useEffect(() => () => {
+    if (touchHoldTimerRef.current !== null) window.clearTimeout(touchHoldTimerRef.current);
+  }, []);
+
   const stageStyle = {
     "--third-background": colors.background,
     "--third-logo": colors.logo,
@@ -344,6 +472,7 @@ export function ThirdVersion() {
     "--third-hover-type-size": `${colors.hoverTypeSize}px`,
   } as ShapeStyle;
   const selected = shapes.find((shape) => shape.name === activeShape);
+  const mobileLogoText = selected?.mobileTitle ?? selected?.title ?? "MORA";
   const panelStyle = visibleSlug ? {
     "--third-panel-background": "#EEEEEE",
     "--third-panel-text": "#0E086E",
@@ -358,8 +487,9 @@ export function ThirdVersion() {
         <Link
           className="third-mobile-logo"
           href="/"
+          data-previewing={selected ? "true" : "false"}
           onFocus={() => setActiveShape(null)}
-        >MORA</Link>
+        >{mobileLogoText}</Link>
         {shapes.map((shape) => {
           const shapeColor = activeShape && activeShape !== shape.name && !colors.hoverColors
             ? colors.unfocused
@@ -372,16 +502,40 @@ export function ThirdVersion() {
             target={shape.openInNewTab ? "_blank" : undefined}
             rel={shape.openInNewTab ? "noopener noreferrer" : undefined}
             aria-label={shape.title}
+            data-shape={shape.name}
+            data-pressed={pressedShape === shape.name}
             data-selected={activeShape === shape.name}
-            onClick={(event) => openShape(event, shape)}
+            onClick={(event) => {
+              if (suppressTouchClickRef.current) {
+                event.preventDefault();
+                suppressTouchClickRef.current = false;
+                return;
+              }
+              openShape(event, shape);
+            }}
+            onContextMenu={(event) => event.preventDefault()}
+            onDragStart={(event) => event.preventDefault()}
+            onPointerDown={(event) => startTouchPreview(event, shape)}
             onPointerEnter={(event) => {
+              if (event.pointerType === "touch") return;
               if (visibleSlug) return;
               positionLabel(shape, event.currentTarget, event.clientX, event.clientY);
               setActiveShape(shape.name);
             }}
-            onPointerMove={(event) => { if (!visibleSlug) positionLabel(shape, event.currentTarget, event.clientX, event.clientY); }}
-            onPointerLeave={() => setActiveShape(null)}
+            onPointerMove={(event) => {
+              if (event.pointerType === "touch") {
+                moveTouchPreview(event);
+                return;
+              }
+              if (!visibleSlug) positionLabel(shape, event.currentTarget, event.clientX, event.clientY);
+            }}
+            onPointerUp={endTouchPreview}
+            onPointerCancel={cancelTouchPreview}
+            onPointerLeave={(event) => {
+              if (event.pointerType !== "touch") setActiveShape(null);
+            }}
             onFocus={(event) => {
+              if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
               if (visibleSlug) return;
               const rect = event.currentTarget.getBoundingClientRect();
               positionLabel(shape, event.currentTarget, rect.left + rect.width / 2, rect.top + rect.height / 2);
