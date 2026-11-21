@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { getSection, isSectionSlug, sectionSlugs } from "@/lib/sections";
 
@@ -8,6 +8,20 @@ type SectionPageProps = {
 
 export function generateStaticParams() {
   return sectionSlugs.map((slug) => ({ slug }));
+}
+
+export async function generateViewport({ params }: SectionPageProps): Promise<Viewport> {
+  const { slug } = await params;
+
+  if (!isSectionSlug(slug)) return {};
+
+  return {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+    themeColor: "#1b1818",
+    colorScheme: "dark",
+  };
 }
 
 export async function generateMetadata({ params }: SectionPageProps): Promise<Metadata> {

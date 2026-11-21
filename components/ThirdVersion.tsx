@@ -219,7 +219,7 @@ export function ThirdVersion() {
       const mobileWidthScale = Math.max(0, viewportWidth - 24) / 393;
       const mobileHeightScale = Math.max(0, viewportHeight - 48) / 580;
       const mobileLayoutScale = Math.max(0.55, Math.min(1, mobileWidthScale, mobileHeightScale));
-      const mobileTitleTop = Math.max(40, Math.min(101, viewportHeight * 0.1185));
+      const mobileTitleTop = 24;
       const mobilePortraitTop = Math.max(84, Math.min(141, viewportHeight * 0.1655));
       const mobileCopyTop = Math.max(280, Math.min(454, viewportHeight * 0.533));
       stage.style.setProperty("--composition-scale", String(scale));

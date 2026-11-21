@@ -4,7 +4,7 @@
   --mobile-center-x: 50vw;
   --mobile-center-y: 50dvh;
   --mobile-viewport-height: 100dvh;
-  --mobile-panel-title-top: 101px;
+  --mobile-panel-title-top: 24px;
   --mobile-panel-portrait-top: 141px;
   --mobile-panel-copy-top: 454px;
   position: relative;
