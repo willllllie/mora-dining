@@ -21,11 +21,32 @@ const areal = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://mora-dining.netlify.app"),
   title: {
     default: "Mora Dining",
     template: "%s — Mora Dining",
   },
   description: "Playful food, generous tables, and memorable gatherings by Mora Dining.",
+  openGraph: {
+    title: "Mora Dining",
+    description: "Playful food, generous tables, and memorable gatherings by Mora Dining.",
+    siteName: "Mora Dining",
+    type: "website",
+    images: [
+      {
+        url: "/mora-link-preview.png",
+        width: 2276,
+        height: 1416,
+        alt: "Mora Dining’s five illustrated table objects",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mora Dining",
+    description: "Playful food, generous tables, and memorable gatherings by Mora Dining.",
+    images: ["/mora-link-preview.png"],
+  },
 };
 
 export const viewport: Viewport = {

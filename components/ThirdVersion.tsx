@@ -4,6 +4,7 @@ import { DialRoot, useDialKit } from "dialkit";
 import type { DialConfig } from "dialkit";
 import "dialkit/styles.css";
 import gsap from "gsap";
+import { CustomEase } from "gsap/CustomEase";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -27,6 +28,9 @@ type Shape = {
   rotation: number;
   flipY?: boolean;
 };
+
+gsap.registerPlugin(CustomEase);
+const moraMotionEase = CustomEase.create("mora-motion", "0.2,0.8,0.1,1");
 
 const shapes: Shape[] = [
   { name: "jelly", slug: "contact", title: "Contact", href: "/contact/", width: 348.887, height: 350.694, rotation: -5.86 },
@@ -90,7 +94,7 @@ const dialConfig = {
     hoverTypeSize: [50, 24, 96, 1],
   },
   intro: {
-    duration: [0.28, 0.2, 1.5, 0.01],
+    duration: [0.4, 0.2, 1.5, 0.01],
     stagger: [0.05, 0, 0.5, 0.01],
     overshoot: [0.3, 0, 5, 0.1],
     replay: { type: "action", label: "Replay intro" },
@@ -118,7 +122,7 @@ export function ThirdVersion() {
   const [replay, setReplay] = useState(0);
   const dial = useDialKit("Mora Third Version", dialConfig, {
     // A fresh key makes the revised palette the default for existing previews too.
-    id: "mora-third-version-v4",
+    id: "mora-third-version-v5",
     persist: true,
     onAction: (action) => {
       if (action === "intro.replay") {
@@ -314,7 +318,14 @@ export function ThirdVersion() {
       }
       gsap.fromTo(pops,
         { scale: 0.48, opacity: 0 },
-        { scale: 1, opacity: 1, duration, stagger, ease: `back.out(${overshoot})`, delay: 0.12 },
+        {
+          keyframes: [
+            { scale: 1 + overshoot * 0.02, opacity: 1, duration: duration * 0.7, ease: moraMotionEase },
+            { scale: 1, duration: duration * 0.3, ease: moraMotionEase },
+          ],
+          stagger,
+          delay: 0.12,
+        },
       );
     }, stage);
     return () => context.revert();
@@ -379,12 +390,12 @@ export function ThirdVersion() {
     timeline.to(pops, {
       scale: 0.42,
       opacity: 0,
-      duration: 0.24,
+      duration: 0.4,
       stagger: { each: 0.035, from: clickedIndex },
-      ease: "back.in(2)",
+      ease: moraMotionEase,
     });
     if (mobileLogo) {
-      timeline.to(mobileLogo, { scale: 0.9, opacity: 0, duration: 0.18, ease: "power2.in" }, 0.04);
+      timeline.to(mobileLogo, { scale: 0.9, opacity: 0, duration: 0.4, ease: moraMotionEase }, 0.04);
     }
   };
 
