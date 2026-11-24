@@ -61,7 +61,7 @@ const mobilePanelTitles: Record<SectionSlug, string> = {
   about: "About us",
   "how-we-work": "What we do",
   "sample-menus": "Sample menus",
-  supper: "Supper\nSupper\nSupper",
+  supper: "Supper Club",
   contact: "Contact us",
 };
 
@@ -110,6 +110,7 @@ export function ThirdVersion() {
   const touchExploreRef = useRef(false);
   const suppressTouchClickRef = useRef(false);
   const touchHoldTimerRef = useRef<number | null>(null);
+  const desktopHoverLeaveTimerRef = useRef<number | null>(null);
   const clippedTextRef = useRef<HTMLSpanElement>(null);
   const [activeShape, setActiveShape] = useState<ShapeName | null>(null);
   const [pressedShape, setPressedShape] = useState<ShapeName | null>(null);
@@ -251,7 +252,7 @@ export function ThirdVersion() {
     // Safari receives the dark browser-chrome color in the same frame as the
     // URL change, rather than briefly restoring the light homepage theme.
     const panelIsOpen = routeSlug !== null || visibleSlug !== null;
-    const pageColor = panelIsOpen ? "#1b1818" : colors.background;
+    const pageColor = panelIsOpen ? "#0c2233" : colors.background;
     const colorScheme = panelIsOpen ? "dark" : "light";
     const root = document.documentElement;
 
@@ -347,7 +348,9 @@ export function ThirdVersion() {
   useLayoutEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
-    const order: ShapeName[] = ["jug", "jelly", "table", "chair", "cup"];
+    const desktopOrder: ShapeName[] = ["table", "jug", "chair", "cup", "jelly"];
+    const mobileOrder: ShapeName[] = ["jug", "jelly", "table", "chair", "cup"];
+    const order = window.matchMedia("(min-width: 768px)").matches ? desktopOrder : mobileOrder;
     const pops = order.map((name) => stage.querySelector<HTMLElement>(`.third-shape--${name} .third-shape__pop`));
     if (pops.some((pop) => !pop)) return;
     const context = gsap.context(() => {
@@ -407,7 +410,7 @@ export function ThirdVersion() {
   };
 
   const openShape = (event: ReactMouseEvent<HTMLAnchorElement>, shape: Shape) => {
-    if (shape.openInNewTab || !window.matchMedia("(max-width: 767px)").matches) return;
+    if (shape.openInNewTab) return;
     event.preventDefault();
     if (mobileTransitionRef.current) return;
 
@@ -420,6 +423,7 @@ export function ThirdVersion() {
     }
 
     const pops = Array.from(stage.querySelectorAll<HTMLElement>(".third-shape__pop"));
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
     const mobileLogo = stage.querySelector<HTMLElement>(".third-mobile-logo");
     const clickedIndex = Math.max(0, shapes.findIndex((item) => item.name === shape.name));
     const timeline = gsap.timeline({
@@ -429,11 +433,11 @@ export function ThirdVersion() {
     timeline.to(pops, {
       scale: 0.42,
       opacity: 0,
-      duration: 0.24,
+      duration: isMobile ? 0.24 : 0.22,
       stagger: { each: 0.025, from: clickedIndex },
       ease: "back.in(2)",
     });
-    if (mobileLogo) {
+    if (isMobile && mobileLogo) {
       timeline.to(mobileLogo, { scale: 0.9, opacity: 0, duration: 0.18, ease: "power2.in" }, 0.02);
     }
   };
@@ -461,6 +465,23 @@ export function ThirdVersion() {
       window.clearTimeout(touchHoldTimerRef.current);
       touchHoldTimerRef.current = null;
     }
+  };
+
+  const clearDesktopHoverLeave = () => {
+    if (desktopHoverLeaveTimerRef.current !== null) {
+      window.clearTimeout(desktopHoverLeaveTimerRef.current);
+      desktopHoverLeaveTimerRef.current = null;
+    }
+  };
+
+  const scheduleDesktopHoverLeave = (x: number, y: number) => {
+    clearDesktopHoverLeave();
+    desktopHoverLeaveTimerRef.current = window.setTimeout(() => {
+      desktopHoverLeaveTimerRef.current = null;
+      const hoveredShape = document.elementFromPoint(x, y)?.closest<HTMLElement>(".third-shape");
+      const shapeName = hoveredShape?.dataset.shape as ShapeName | undefined;
+      setActiveShape(shapeName ?? null);
+    }, 50);
   };
 
   const getShapeAtPoint = (x: number, y: number) => {
@@ -527,6 +548,7 @@ export function ThirdVersion() {
 
   useEffect(() => () => {
     if (touchHoldTimerRef.current !== null) window.clearTimeout(touchHoldTimerRef.current);
+    if (desktopHoverLeaveTimerRef.current !== null) window.clearTimeout(desktopHoverLeaveTimerRef.current);
   }, []);
 
   const stageStyle = {
@@ -589,6 +611,7 @@ export function ThirdVersion() {
             onPointerEnter={(event) => {
               if (event.pointerType === "touch") return;
               if (visibleSlug) return;
+              clearDesktopHoverLeave();
               positionLabel(shape, event.currentTarget, event.clientX, event.clientY);
               setActiveShape(shape.name);
             }}
@@ -602,7 +625,7 @@ export function ThirdVersion() {
             onPointerUp={endTouchPreview}
             onPointerCancel={cancelTouchPreview}
             onPointerLeave={(event) => {
-              if (event.pointerType !== "touch") setActiveShape(null);
+              if (event.pointerType !== "touch") scheduleDesktopHoverLeave(event.clientX, event.clientY);
             }}
             onFocus={(event) => {
               if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
@@ -655,15 +678,15 @@ export function ThirdVersion() {
         <aside ref={panelRef} className="third-panel" data-slug={visibleSlug} style={panelStyle} role="dialog" aria-modal="true" aria-labelledby="third-panel-title" tabIndex={-1}>
           <div className="third-panel__frame">
             <h1 id="third-panel-title">
-              <span className="third-panel__title-desktop">{shapes.find((shape) => shape.slug === visibleSlug)?.title}</span>
+              <span className="third-panel__title-desktop">{visibleSlug === "how-we-work" ? "Offering" : visibleSlug === "supper" ? "Supper Club" : shapes.find((shape) => shape.slug === visibleSlug)?.title}</span>
               <span className="third-panel__title-mobile">{mobilePanelTitles[visibleSlug]}</span>
             </h1>
             {visibleSlug === "about" && <Image
               className="third-panel__portrait"
-              src="/mobile-panels/grace-and-sophie.png"
+              src="/desktop-panels/grace-and-sophie.png"
               alt="Grace and Sophie"
-              width={329}
-              height={342}
+              width={658}
+              height={684}
               priority
             />}
             <div className="third-panel__copy"><SectionCopy slug={visibleSlug} /></div>
