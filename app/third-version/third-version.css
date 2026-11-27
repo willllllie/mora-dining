@@ -1,3 +1,10 @@
+/* Safari samples the document background for its surrounding browser UI.
+   Give both routes their color before the client-side theme effect runs. */
+html:has(.third-version),
+body:has(.third-version) {
+  background: #f1ede9;
+}
+
 html:has(.third-version[data-panel-open="true"]),
 body:has(.third-version[data-panel-open="true"]) {
   background: #0c2233;
@@ -576,25 +583,27 @@ body:has(.third-version[data-panel-open="true"]) {
   }
   .third-shape--jelly .third-shape__art { transform: translate(-50%, -50%) rotate(-5.86deg) scale(.337); }
   .third-panel {
-    position: fixed;
-    inset: 0;
+    position: relative;
+    inset: auto;
     width: 100%;
     height: auto;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    background: #0c2233;
+    min-height: 100%;
+    overflow: visible;
+    background: transparent;
     color: #cccafb;
     transform: none;
-    -webkit-overflow-scrolling: touch;
   }
   .third-overlay {
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
     background: #0c2233;
+    -webkit-overflow-scrolling: touch;
   }
   .third-overlay__backdrop { display: none; }
   .third-panel__frame {
     height: auto;
-    min-height: 100%;
+    min-height: 100dvh;
     overflow-x: hidden;
     overflow-y: visible;
     overscroll-behavior: contain;
@@ -655,7 +664,7 @@ body:has(.third-version[data-panel-open="true"]) {
     margin-top: calc(var(--mobile-panel-copy-top) + env(safe-area-inset-top, 0px));
     margin-right: max(20px, env(safe-area-inset-right, 0px));
     margin-left: max(20px, env(safe-area-inset-left, 0px));
-    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     overflow: visible;
     color: #cccafb;
     font-size: clamp(20px, 6vw, 24px);
