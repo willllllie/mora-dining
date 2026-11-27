@@ -487,6 +487,17 @@ body:has(.third-version[data-panel-open="true"]) {
     overflow: hidden;
     overscroll-behavior: none;
   }
+  .third-version[data-panel-open="true"] {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    min-height: 100dvh;
+    overflow: visible;
+    overscroll-behavior: auto;
+  }
+  .third-version[data-panel-open="true"] .third-composition {
+    display: none;
+  }
   .third-composition {
     position: absolute;
     top: var(--mobile-center-y);
@@ -587,26 +598,24 @@ body:has(.third-version[data-panel-open="true"]) {
     inset: auto;
     width: 100%;
     height: auto;
-    min-height: 100%;
+    min-height: 100dvh;
     overflow: visible;
     background: transparent;
     color: #cccafb;
     transform: none;
   }
   .third-overlay {
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
+    position: relative;
+    inset: auto;
+    min-height: 100dvh;
+    overflow: visible;
     background: #0c2233;
-    -webkit-overflow-scrolling: touch;
   }
   .third-overlay__backdrop { display: none; }
   .third-panel__frame {
     height: auto;
     min-height: 100dvh;
-    overflow-x: hidden;
-    overflow-y: visible;
-    overscroll-behavior: contain;
+    overflow: visible;
     background: transparent;
     animation: none;
   }

@@ -255,9 +255,12 @@ export function ThirdVersion() {
     const pageColor = panelIsOpen ? "#0c2233" : colors.background;
     const colorScheme = panelIsOpen ? "dark" : "light";
     const root = document.documentElement;
+    const desktopMedia = window.matchMedia("(min-width: 768px)");
 
     const applyBrowserTheme = () => {
-      document.body.style.overflow = panelIsOpen ? "hidden" : "";
+      // Mobile panels scroll the document so iOS browsers can collapse and
+      // restore their controls in response to the visitor's swipe.
+      document.body.style.overflow = panelIsOpen && desktopMedia.matches ? "hidden" : "";
       document.body.style.backgroundColor = pageColor;
       root.style.backgroundColor = pageColor;
       root.style.colorScheme = colorScheme;
@@ -281,6 +284,7 @@ export function ThirdVersion() {
     });
     window.addEventListener("pageshow", applyBrowserTheme);
     window.addEventListener("popstate", applyBrowserTheme);
+    desktopMedia.addEventListener("change", applyBrowserTheme);
 
     return () => {
       cancelAnimationFrame(frame);
@@ -288,6 +292,7 @@ export function ThirdVersion() {
       headObserver.disconnect();
       window.removeEventListener("pageshow", applyBrowserTheme);
       window.removeEventListener("popstate", applyBrowserTheme);
+      desktopMedia.removeEventListener("change", applyBrowserTheme);
     };
   }, [colors.background, routeSlug, visibleSlug]);
 
@@ -449,14 +454,14 @@ export function ThirdVersion() {
     mobileTransitionRef.current = true;
     const overlay = panelRef.current?.closest<HTMLElement>(".third-overlay");
     if (!overlay || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      router.push("/", { scroll: false });
+      router.push("/");
       return;
     }
     gsap.to(overlay, {
       opacity: 0,
       duration: 0.18,
       ease: "power2.in",
-      onComplete: () => router.push("/", { scroll: false }),
+      onComplete: () => router.push("/"),
     });
   };
 
