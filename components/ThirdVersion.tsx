@@ -324,16 +324,12 @@ export function ThirdVersion() {
       const mobileHeightScale = Math.max(0, viewportHeight - 48) / 580;
       const mobileLayoutScale = Math.max(0.55, Math.min(1, mobileWidthScale, mobileHeightScale));
       const mobileTitleTop = 24;
-      const mobilePortraitTop = Math.max(84, Math.min(141, viewportHeight * 0.1655));
-      const mobileCopyTop = Math.max(280, Math.min(454, viewportHeight * 0.533));
       stage.style.setProperty("--composition-scale", String(scale));
       stage.style.setProperty("--mobile-layout-scale", String(mobileLayoutScale));
       stage.style.setProperty("--mobile-center-x", `${viewportOffsetX + viewportWidth / 2}px`);
       stage.style.setProperty("--mobile-center-y", `${viewportOffsetY + viewportHeight / 2}px`);
       stage.style.setProperty("--mobile-viewport-height", `${viewportHeight}px`);
       stage.style.setProperty("--mobile-panel-title-top", `${mobileTitleTop}px`);
-      stage.style.setProperty("--mobile-panel-portrait-top", `${mobilePortraitTop}px`);
-      stage.style.setProperty("--mobile-panel-copy-top", `${mobileCopyTop}px`);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(stage);

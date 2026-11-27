@@ -479,6 +479,8 @@ body:has(.third-version[data-panel-open="true"]) {
 
 @media (max-width: 767px) {
   .third-version {
+    --mobile-panel-portrait-top: clamp(84px, 16.55svh, 141px);
+    --mobile-panel-copy-top: clamp(280px, 53.3svh, 454px);
     position: fixed;
     inset: 0;
     width: auto;
@@ -613,6 +615,7 @@ body:has(.third-version[data-panel-open="true"]) {
   }
   .third-overlay__backdrop { display: none; }
   .third-panel__frame {
+    display: flow-root;
     height: auto;
     min-height: 100dvh;
     overflow: visible;
@@ -620,15 +623,7 @@ body:has(.third-version[data-panel-open="true"]) {
     animation: none;
   }
   .third-panel__frame::before {
-    position: fixed;
-    inset: 0;
-    display: block;
-    background: #0c2233;
-    content: "";
-    opacity: 0;
-    mask: none;
-    -webkit-mask: none;
-    animation: third-mobile-background-in 220ms var(--third-fade-ease) both;
+    display: none;
   }
   .third-panel h1 {
     position: absolute;
