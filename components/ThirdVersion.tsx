@@ -73,6 +73,12 @@ function inverseHex(color: string) {
     (255 - Number.parseInt(hex.slice(index, index + 2), 16)).toString(16).padStart(2, "0")).join("")}`;
 }
 
+function navigateDocument(href: string) {
+  // iOS browser chrome does not reliably retint after an App Router soft
+  // navigation between the light landing page and a dark detail page.
+  window.location.assign(href);
+}
+
 const dialConfig = {
   appearance: {
     background: "#f1ede9",
@@ -199,7 +205,8 @@ export function ThirdVersion() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        router.push("/");
+        if (window.matchMedia("(max-width: 767px)").matches) navigateDocument("/");
+        else router.push("/");
       }
       if (event.key !== "Tab" || !panelRef.current) return;
       const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])"));
@@ -212,6 +219,24 @@ export function ThirdVersion() {
     document.addEventListener("keydown", onKeyDown);
     return () => { clearTimeout(focus); document.removeEventListener("keydown", onKeyDown); };
   }, [visibleSlug, router]);
+
+  useEffect(() => {
+    const restoreFromHistory = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      mobileTransitionRef.current = false;
+      if (routeSlug) {
+        const overlay = stageRef.current?.querySelector<HTMLElement>(".third-overlay");
+        if (overlay) gsap.set(overlay, { opacity: 1 });
+        return;
+      }
+      const pops = stageRef.current?.querySelectorAll<HTMLElement>(".third-shape__pop");
+      const logo = stageRef.current?.querySelector<HTMLElement>(".third-mobile-logo");
+      if (pops) gsap.set(pops, { scale: 1, opacity: 1 });
+      if (logo) gsap.set(logo, { scale: 1, opacity: 1 });
+    };
+    window.addEventListener("pageshow", restoreFromHistory);
+    return () => window.removeEventListener("pageshow", restoreFromHistory);
+  }, [routeSlug]);
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -418,17 +443,21 @@ export function ThirdVersion() {
     mobileTransitionRef.current = true;
     setActiveShape(null);
     const stage = stageRef.current;
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const navigate = () => {
+      if (isMobile) navigateDocument(shape.href);
+      else router.push(shape.href, { scroll: false });
+    };
     if (!stage || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      router.push(shape.href, { scroll: false });
+      navigate();
       return;
     }
 
     const pops = Array.from(stage.querySelectorAll<HTMLElement>(".third-shape__pop"));
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
     const mobileLogo = stage.querySelector<HTMLElement>(".third-mobile-logo");
     const clickedIndex = Math.max(0, shapes.findIndex((item) => item.name === shape.name));
     const timeline = gsap.timeline({
-      onComplete: () => router.push(shape.href, { scroll: false }),
+      onComplete: navigate,
     });
 
     timeline.to(pops, {
@@ -450,14 +479,14 @@ export function ThirdVersion() {
     mobileTransitionRef.current = true;
     const overlay = panelRef.current?.closest<HTMLElement>(".third-overlay");
     if (!overlay || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      router.push("/");
+      navigateDocument("/");
       return;
     }
     gsap.to(overlay, {
       opacity: 0,
       duration: 0.18,
       ease: "power2.in",
-      onComplete: () => router.push("/"),
+      onComplete: () => navigateDocument("/"),
     });
   };
 
