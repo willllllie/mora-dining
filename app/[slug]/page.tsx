@@ -19,7 +19,7 @@ export async function generateViewport({ params }: SectionPageProps): Promise<Vi
     width: "device-width",
     initialScale: 1,
     viewportFit: "cover",
-    themeColor: "#1b1818",
+    themeColor: "#0c2233",
     colorScheme: "dark",
   };
 }

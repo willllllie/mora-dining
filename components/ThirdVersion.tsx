@@ -38,12 +38,12 @@ const shapes: Shape[] = [
 
 function SectionCopy({ slug }: { slug: SectionSlug }) {
   if (slug === "about") return <>
-    <p>We are two friends who met working in a canalside restaurant in London. Grace is from Cornwall and Sophie is from Northern California, both places deeply connected to the sea and the seasonal rhythms of the coast. We share a love of excellent food done simply, craft, and hosting, and decided to start MORA to share this with others.</p>
-    <p>In Cornish Mora means “to go out to sea”; for us it evokes a sense of place, seasonality and adventure, as well as the ambition to create something of our own.</p>
+    <p>We are Sophie and Grace, two friends who met working at Towpath, a canalside restaurant in London. Grace is from Cornwall and Sophie is from Northern California, both places deeply connected to the sea and the seasonal rhythms of the coast. We share a love of excellent food done simply, craft, and hosting, and decided to start MORA to share this with others.</p>
+    <p>In Cornish Mora means <em>to go out to sea</em>; for us it evokes a sense of place, seasonality and adventure, as well as the ambition to create something of our own.</p>
   </>;
   if (slug === "how-we-work") return <>
-    <p>We are a boutique catering company specializing in seasonal, simple food done well. We believe the best food comes from exceptional ingredients and like to work with those who think so too. We work with our friends at Natoora, Flock and Herd Butchery, Neal’s Yard, and others and our wines are sourced from Tutto.</p>
-    <p>We provide catering for weddings, photo shoots, offices, parties, and private households. We also host a recurring supper club, SUPPER SUPPER SUPPER.</p>
+    <p>We are a boutique catering company specialising in seasonal, simple food done well. We believe the best food comes from exceptional ingredients and like to work with those who think so too. We work with our friends at Natoora, Flock and Herd Butcher, Neal’s Yard, Tutto Wines, and Fine Cider Company for our events</p>
+    <p>We provide catering for weddings, photo shoots, offices, parties, and private households. We also host a regular supper club, SUPPER SUPPER SUPPER.</p>
   </>;
   if (slug === "supper") return <>
     <p>SUPPER SUPPER SUPPER is our recurring supper club. It’s our favorite way to bring together a group of people for what we think is a perfect evening. Held in an outdoor/indoor courtyard of a converted clock factory in Camberwell, it begins with a welcome cocktail and mingling before switching to a family style three course meal. We’re lucky to have guests that come back each time – if you’d like to be notified by email of the next event, sign up below.</p>

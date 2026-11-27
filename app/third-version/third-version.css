@@ -1,3 +1,9 @@
+html:has(.third-version[data-panel-open="true"]),
+body:has(.third-version[data-panel-open="true"]) {
+  background: #0c2233;
+  color-scheme: dark;
+}
+
 .third-version {
   --composition-scale: 1;
   --third-fade-duration: 190ms;
@@ -47,7 +53,7 @@
 
 .third-header a {
   color: var(--third-logo);
-  font-size: 40px;
+  font-size: 56px;
   font-weight: 700;
   line-height: 1;
   pointer-events: auto;
